@@ -13,6 +13,7 @@
 
 #include "Subtractive.h"
 #include "FM.h"
+#include "FMSimple.h"
 #include "Wavetable.h"
 #include "PhysicalModel.h"
 #include "Granular.h"
