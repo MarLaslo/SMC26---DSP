@@ -26,6 +26,7 @@ class FMSimple
     {
         fm_.Init(sample_rate);
         SetFreq(440.f);
+        SetModRatio(2.f);
         SetModDepth(1.f);
         SetBrightness(0.5f);
 

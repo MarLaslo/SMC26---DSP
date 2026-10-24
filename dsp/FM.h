@@ -26,6 +26,7 @@ class FM
     {
         fm_.Init(sample_rate);
         SetFreq(440.f);
+        SetModRatio(2.f);
         SetModDepth(1.f);
 
         amp_env_.Init(sample_rate);
