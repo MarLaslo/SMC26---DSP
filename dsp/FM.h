@@ -1,8 +1,11 @@
 #pragma once
 
+#include "Synthesis/fm2.h"
+
 namespace dsp
 {
-/** FM synthesis: carrier oscillator frequency-modulated by a modulator oscillator.
+/** FM synthesis: carrier oscillator frequency-modulated by a modulator
+ *  oscillator. Built on top of DaisySP's Fm2.
  *  Usage:
  *      FM voice;
  *      voice.Init(sample_rate);
@@ -14,28 +17,23 @@ class FM
   public:
     void Init(float sample_rate)
     {
-        sample_rate_ = sample_rate;
-        freq_        = 440.f;
+        fm_.Init(sample_rate);
+        SetFreq(440.f);
     }
 
-    void SetFreq(float freq_hz) { freq_ = freq_hz; }
+    void SetFreq(float freq_hz) { fm_.SetFrequency(freq_hz); }
 
-    void SetModRatio(float ratio) { mod_ratio_ = ratio; }
+    /** Modulator frequency relative to the carrier (1 = same pitch). */
+    void SetModRatio(float ratio) { fm_.SetRatio(ratio); }
 
-    void SetModDepth(float depth) { mod_depth_ = depth; }
+    /** How much the modulator pushes the carrier's pitch around. */
+    void SetModDepth(float depth) { fm_.SetIndex(depth); }
 
     /** Returns the next audio sample. */
-    float Process()
-    {
-        // TODO: modulator oscillator -> carrier oscillator
-        return 0.f;
-    }
+    float Process() { return fm_.Process(); }
 
   private:
-    float sample_rate_ = 48000.f;
-    float freq_        = 440.f;
-    float mod_ratio_   = 1.f;
-    float mod_depth_   = 0.f;
+    daisysp::Fm2 fm_;
 };
 
 } // namespace dsp
