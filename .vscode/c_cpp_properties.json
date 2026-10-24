@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "name": "DaisySeed",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/dsp",
+                "${workspaceFolder}/libs/libDaisy",
+                "${workspaceFolder}/libs/libDaisy/src",
+                "${workspaceFolder}/libs/libDaisy/src/sys",
+                "${workspaceFolder}/libs/libDaisy/src/usbd",
+                "${workspaceFolder}/libs/libDaisy/src/usbh",
+                "${workspaceFolder}/libs/libDaisy/core",
+                "${workspaceFolder}/libs/libDaisy/Drivers/CMSIS_5/CMSIS/Core/Include",
+                "${workspaceFolder}/libs/libDaisy/Drivers/CMSIS-DSP/Include",
+                "${workspaceFolder}/libs/libDaisy/Drivers/CMSIS-Device/ST/STM32H7xx/Include",
+                "${workspaceFolder}/libs/libDaisy/Drivers/STM32H7xx_HAL_Driver/Inc",
+                "${workspaceFolder}/libs/libDaisy/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy",
+                "${workspaceFolder}/libs/libDaisy/Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
+                "${workspaceFolder}/libs/libDaisy/Middlewares/ST/STM32_USB_Host_Library/Core/Inc",
+                "${workspaceFolder}/libs/libDaisy/Middlewares/ST/STM32_USB_Host_Library/Class/MSC/Inc",
+                "${workspaceFolder}/libs/libDaisy/Middlewares/ST/STM32_USB_Host_Library/Class/MIDI/Inc",
+                "${workspaceFolder}/libs/libDaisy/Middlewares/Third_Party/FatFs/src",
+                "${workspaceFolder}/libs/DaisySP/Source"
+            ],
+            "defines": [
+                "USE_HAL_DRIVER",
+                "STM32H750xx",
+                "STM32H750IB",
+                "HSE_VALUE=16000000",
+                "CORE_CM7",
+                "ARM_MATH_CM7",
+                "USE_FULL_LL_DRIVER"
+            ],
+            "compilerPath": "/Library/DaisyToolchain/0.2.0/arm/bin/arm-none-eabi-gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "gcc-arm"
+        }
+    ],
+    "version": 4
+}
