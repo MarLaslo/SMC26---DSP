@@ -15,3 +15,6 @@
 #include "FM.h"
 #include "Wavetable.h"
 #include "PhysicalModel.h"
+#include "Granular.h"
+#include "Sampler.h"
+#include "Additive.h"
