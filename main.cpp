@@ -16,23 +16,20 @@
  *                Seed's internal pull-up, so no extra resistor is
  *                needed.)
  */
-#include "daisy_seed.h"
+#include "daisysp.h"
+#include "dsp/Mapping.h"
 #include "dsp/Synthesis.h"
+#include "hardware.h"
 
 using namespace daisy;
 
-DaisySeed    hw;
-Switch       button;
-dsp::FMSimple voice;
+AnalogIn  potFreq(seed::D15, "frequency", 0.05f); // longer slew: feeds FM carrier freq
+AnalogIn  potRatio(seed::D16, "mod ratio");
+AnalogIn  potDepth(seed::D17, "mod depth");
+AnalogIn  potBrightness(seed::D18, "brightness");
+DigitalIn button(seed::D9, "note button");
 
-enum
-{
-    POT_FREQ = 0,
-    POT_RATIO,
-    POT_DEPTH,
-    POT_BRIGHTNESS,
-    POT_LAST
-};
+dsp::FMSimple voice;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -41,6 +38,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
     for(size_t i = 0; i < size; i++)
     {
         float sample = voice.Process();
+        sample *= 0.2f;
         OUT_L[i]      = sample;
         OUT_R[i]      = sample;
     }
@@ -48,37 +46,28 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 
 int main(void)
 {
-    hw.Init();
-
-    AdcChannelConfig adc_cfg[POT_LAST];
-    adc_cfg[POT_FREQ].InitSingle(seed::D15);
-    adc_cfg[POT_RATIO].InitSingle(seed::D16);
-    adc_cfg[POT_DEPTH].InitSingle(seed::D17);
-    adc_cfg[POT_BRIGHTNESS].InitSingle(seed::D18);
-    hw.adc.Init(adc_cfg, POT_LAST);
-    hw.adc.Start();
-
-    button.Init(seed::D9);
-
+    InitHardware();
     voice.Init(hw.AudioSampleRate());
+    voice.SetAttack(4.0f);
+    voice.SetRelease(3.0f);
 
     hw.StartAudio(AudioCallback);
 
     while(1)
     {
-        button.Debounce();
+        UpdateControls();
 
-        float freq       = 80.f + hw.adc.GetFloat(POT_FREQ) * 920.f;    // 80 Hz .. 1 kHz
-        float mod_ratio   = 0.5f + hw.adc.GetFloat(POT_RATIO) * 7.5f;    // 0.5 .. 8
-        float mod_depth   = hw.adc.GetFloat(POT_DEPTH) * 5.f;           // 0 .. 5
-        float brightness  = hw.adc.GetFloat(POT_BRIGHTNESS);            // 0 .. 1
+        float freq       = dsp::MapLinear(potFreq.Value(), 80.f, 1000.f);
+        float mod_ratio  = dsp::MapLinear(potRatio.Value(), 0.5f, 8.f);
+        float mod_depth  = dsp::MapLinear(potDepth.Value(), 0.f, 5.f);
+        float brightness = potBrightness.Value();
 
         voice.SetFreq(freq);
         voice.SetModRatio(mod_ratio);
         voice.SetModDepth(mod_depth);
         voice.SetBrightness(brightness);
 
-        if(button.Pressed())
+        if(button.Value())
             voice.NoteOn();
         else
             voice.NoteOff();
