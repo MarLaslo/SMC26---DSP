@@ -1,12 +1,12 @@
 /** SMC26 DSP course starter project.
  *
- *  dsp::FMSimple, played live from 4 pots and a button on a bare
+ *  dsp::Additive, played live from 4 pots and a button on a bare
  *  Daisy Seed:
  *
  *      Pot 1 (D15 / A0) -> Frequency
- *      Pot 2 (D16 / A1) -> Modulator ratio
- *      Pot 3 (D17 / A2) -> Modulator depth
- *      Pot 4 (D18 / A3) -> Brightness
+ *      Pot 2 (D16 / A1) -> Number of harmonics
+ *      Pot 3 (D17 / A2) -> Rolloff (brightness)
+ *      Pot 4 (D18 / A3) -> 2nd partial's ratio (inharmonic detune)
  *      Button           -> Note on/off (hold to sustain)
  *
  *  Wiring:
@@ -23,13 +23,13 @@
 
 using namespace daisy;
 
-AnalogIn  potFreq(seed::D15, "frequency", 0.05f); // longer slew: feeds FM carrier freq
-AnalogIn  potRatio(seed::D16, "mod ratio");
-AnalogIn  potDepth(seed::D17, "mod depth");
-AnalogIn  potBrightness(seed::D18, "brightness");
+AnalogIn  potFreq(seed::D15, "frequency", 0.05f); // longer slew: feeds base freq
+AnalogIn  potNumHarmonics(seed::D16, "num harmonics");
+AnalogIn  potRolloff(seed::D17, "rolloff");
+AnalogIn  potHarmonic2Ratio(seed::D18, "2nd partial ratio");
 DigitalIn button(seed::D9, "note button");
 
-dsp::FMSimple voice;
+dsp::Additive voice;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -48,8 +48,8 @@ int main(void)
 {
     InitHardware();
     voice.Init(hw.AudioSampleRate());
-    voice.SetAttack(4.0f);
-    voice.SetRelease(3.0f);
+    voice.SetAmpAttack(0.01f);
+    voice.SetAmpRelease(0.3f);
 
     hw.StartAudio(AudioCallback);
 
@@ -57,15 +57,16 @@ int main(void)
     {
         UpdateControls();
 
-        float freq       = dsp::MapLinear(potFreq.Value(), 80.f, 1000.f);
-        float mod_ratio  = dsp::MapLinear(potRatio.Value(), 0.5f, 8.f);
-        float mod_depth  = dsp::MapLinear(potDepth.Value(), 0.f, 5.f);
-        float brightness = potBrightness.Value();
+        float freq          = dsp::MapLinear(potFreq.Value(), 80.f, 1000.f);
+        int   num_harmonics = static_cast<int>(
+            dsp::MapLinear(potNumHarmonics.Value(), 1.f, dsp::Additive::kMaxHarmonics));
+        float rolloff          = potRolloff.Value();
+        float harmonic_2_ratio = dsp::MapLinear(potHarmonic2Ratio.Value(), 1.5f, 3.5f);
 
         voice.SetFreq(freq);
-        voice.SetModRatio(mod_ratio);
-        voice.SetModDepth(mod_depth);
-        voice.SetBrightness(brightness);
+        voice.SetNumHarmonics(num_harmonics);
+        voice.SetRolloff(rolloff);
+        voice.SetHarmonicRatio(1, harmonic_2_ratio);
 
         if(button.Value())
             voice.NoteOn();
