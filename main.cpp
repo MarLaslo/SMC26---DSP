@@ -1,11 +1,17 @@
 /** SMC26 DSP course starter project.
  *
- *  dsp::SteppedNoise (sample-and-held noise), played live from 2
- *  pots and a button on a bare Daisy Seed:
+ *  dsp::Subtractive (oscillator -> filter -> amp envelope), played
+ *  live from 4 pots and a button, with dsp::Overdrive and dsp::Chorus
+ *  on the output:
  *
- *      Pot 1 (D15 / A0) -> Step rate (how often a new random value is held)
- *      Pot 2 (D16 / A1) -> Output level
- *      Button           -> Sync (forces a fresh random value on each press)
+ *      Pot 1 (D15 / A0) -> Note pitch
+ *      Pot 2 (D16 / A1) -> Filter cutoff
+ *      Pot 3 (D17 / A2) -> Overdrive amount
+ *      Pot 4 (D18 / A3) -> Chorus amount
+ *      Button           -> Note on/off (hold to sustain)
+ *
+ *  Filter resonance and filter envelope amount aren't wired to a pot;
+ *  they're fixed at a reasonable default below.
  *
  *  Wiring:
  *      Each pot: outer legs to 3V3 and GND, middle wiper to its D pin.
@@ -16,17 +22,22 @@
  */
 #include "daisysp.h"
 #include "dsp/Utility.h"
-#include "dsp/Synthesis/Noise.h"
+#include "dsp/Synthesis/Subtractive.h"
+#include "dsp/Effects/Overdrive.h"
+#include "dsp/Effects/Chorus.h"
 #include "hardware.h"
 
 using namespace daisy;
 
-AnalogIn  potRate(seed::D15, "step rate");
-AnalogIn  potLevel(seed::D16, "level");
-DigitalIn syncButton(seed::D9, "sync button");
+AnalogIn  potFreq(seed::D15, "note pitch");
+AnalogIn  potCutoff(seed::D16, "filter cutoff");
+AnalogIn  potDrive(seed::D17, "overdrive amount");
+AnalogIn  potChorus(seed::D18, "chorus amount");
+DigitalIn noteButton(seed::D9, "note button");
 
-dsp::SteppedNoise noise;
-float             level = 0.5f;
+dsp::Subtractive voice;
+dsp::Overdrive   overdrive;
+dsp::Chorus      chorus;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -34,17 +45,22 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 {
     for(size_t i = 0; i < size; i++)
     {
-        float sample = noise.Process();
-        sample *= level;
-        OUT_L[i] = sample;
-        OUT_R[i] = sample;
+        float sample = voice.Process();
+        sample       = overdrive.Process(sample);
+        sample       = chorus.Process(sample);
+        OUT_L[i]     = sample;
+        OUT_R[i]     = sample;
     }
 }
 
 int main(void)
 {
     InitHardware();
-    noise.Init(hw.AudioSampleRate());
+    voice.Init(hw.AudioSampleRate());
+    voice.SetResonance(0.3f);
+    voice.SetFilterEnvAmount(2000.f);
+    overdrive.Init();
+    chorus.Init(hw.AudioSampleRate());
 
     hw.StartAudio(AudioCallback);
 
@@ -54,12 +70,17 @@ int main(void)
     {
         UpdateControls();
 
-        noise.SetFreq(dsp::MapLinear(potRate.Value(), 20.f, 8000.f));
-        level = dsp::MapLinear(potLevel.Value(), 0.f, 1.f);
+        voice.SetFreq(dsp::MapLinear(potFreq.Value(), 80.f, 880.f));
+        voice.SetCutoff(dsp::MapLinear(potCutoff.Value(), 200.f, 5000.f));
 
-        bool pressed = syncButton.Value();
+        overdrive.SetDrive(potDrive.Value());
+        chorus.SetLfoDepth(potChorus.Value());
+
+        bool pressed = noteButton.Value();
         if(pressed && !was_pressed)
-            noise.Sync();
+            voice.NoteOn();
+        else if(!pressed && was_pressed)
+            voice.NoteOff();
         was_pressed = pressed;
 
         System::Delay(1);
