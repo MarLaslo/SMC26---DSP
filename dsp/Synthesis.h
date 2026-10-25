@@ -14,7 +14,6 @@
 #include "Subtractive.h"
 #include "FM.h"
 #include "FMSimple.h"
-#include "Wavetable.h"
 #include "PhysicalModels/KarplusString.h"
 #include "PhysicalModels/ModalVoice.h"
 #include "PhysicalModels/StringVoice.h"
