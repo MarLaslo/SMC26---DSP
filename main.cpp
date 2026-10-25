@@ -1,18 +1,15 @@
 /** SMC26 DSP course starter project.
  *
- *  dsp::Subtractive, played live from 3 pots and a button on a bare
- *  Daisy Seed:
+ *  dsp::HiHat (808-style metallic noise), played live from 3 pots and
+ *  a button on a bare Daisy Seed:
  *
  *      Pot 1 (D15 / A0) -> Frequency
- *      Pot 2 (D16 / A1) -> Filter cutoff
- *      Pot 3 (D17 / A2) -> Filter resonance
- *      Pot 4 (D18 / A3) -> Filter envelope amount (how far the cutoff
- *                          sweeps open on each note's attack)
- *      Button           -> Gate (hold to trigger the amp + filter envelopes)
+ *      Pot 2 (D16 / A1) -> Decay
+ *      Pot 3 (D17 / A2) -> Noisiness (tone vs. noise mix)
+ *      Button           -> Hit (triggers the hi-hat on each press)
  *
  *  Wiring:
- *      Each pot (including D18): outer legs to 3V3 and GND, middle
- *                wiper to its D pin.
+ *      Each pot: outer legs to 3V3 and GND, middle wiper to its D pin.
  *      Button:   one leg to D9, other leg to GND.
  *                (D9 is free, and the Switch defaults to using the
  *                Seed's internal pull-up, so no extra resistor is
@@ -20,18 +17,17 @@
  */
 #include "daisysp.h"
 #include "dsp/Mapping.h"
-#include "dsp/Subtractive.h"
+#include "dsp/Drums.h"
 #include "hardware.h"
 
 using namespace daisy;
 
-AnalogIn  potFreq(seed::D15, "frequency", 0.05f); // longer slew: feeds base freq
-AnalogIn  potCutoff(seed::D16, "filter cutoff");
-AnalogIn  potResonance(seed::D17, "filter resonance");
-AnalogIn  potFilterEnvAmount(seed::D18, "filter envelope amount");
-DigitalIn gateButton(seed::D9, "gate button");
+AnalogIn  potFreq(seed::D15, "frequency");
+AnalogIn  potDecay(seed::D16, "decay");
+AnalogIn  potNoisiness(seed::D17, "noisiness");
+DigitalIn hitButton(seed::D9, "hit button");
 
-dsp::Subtractive voice;
+dsp::HiHat hat;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -39,38 +35,34 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 {
     for(size_t i = 0; i < size; i++)
     {
-        float sample = voice.Process();
-        sample *= 0.5f;
-        OUT_L[i]      = sample;
-        OUT_R[i]      = sample;
+        float sample = hat.Process();
+        sample *= 0.8f;
+        OUT_L[i] = sample;
+        OUT_R[i] = sample;
     }
 }
 
 int main(void)
 {
     InitHardware();
-    voice.Init(hw.AudioSampleRate());
+    hat.Init(hw.AudioSampleRate());
 
     hw.StartAudio(AudioCallback);
+
+    bool was_pressed = false;
 
     while(1)
     {
         UpdateControls();
 
-        float freq            = dsp::MapLinear(potFreq.Value(), 80.f, 1000.f);
-        float cutoff          = dsp::MapLinear(potCutoff.Value(), 100.f, 5000.f);
-        float resonance       = dsp::MapLinear(potResonance.Value(), 0.f, 1.f);
-        float filter_env_amt = dsp::MapLinear(potFilterEnvAmount.Value(), 0.f, 4000.f);
+        hat.SetFreq(dsp::MapLinear(potFreq.Value(), 2000.f, 8000.f));
+        hat.SetDecay(dsp::MapLinear(potDecay.Value(), 0.f, 1.f));
+        hat.SetNoisiness(dsp::MapLinear(potNoisiness.Value(), 0.f, 1.f));
 
-        voice.SetFreq(freq);
-        voice.SetCutoff(cutoff);
-        voice.SetResonance(resonance);
-        voice.SetFilterEnvAmount(filter_env_amt);
-
-        if(gateButton.Value())
-            voice.NoteOn();
-        else
-            voice.NoteOff();
+        bool pressed = hitButton.Value();
+        if(pressed && !was_pressed)
+            hat.Hit();
+        was_pressed = pressed;
 
         System::Delay(1);
     }

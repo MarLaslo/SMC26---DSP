@@ -19,3 +19,4 @@
 #include "PhysicalModels/StringVoice.h"
 #include "Granular.h"
 #include "Additive.h"
+#include "Drums.h"
