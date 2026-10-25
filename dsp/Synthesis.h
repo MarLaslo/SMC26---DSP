@@ -19,5 +19,4 @@
 #include "PhysicalModels/ModalVoice.h"
 #include "PhysicalModels/StringVoice.h"
 #include "Granular.h"
-#include "Sampler.h"
 #include "Additive.h"
