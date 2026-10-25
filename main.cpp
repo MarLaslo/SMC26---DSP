@@ -15,8 +15,8 @@
  *                needed.)
  */
 #include "daisysp.h"
-#include "dsp/Mapping.h"
-#include "dsp/Noise.h"
+#include "dsp/Utility.h"
+#include "dsp/Synthesis/Noise.h"
 #include "hardware.h"
 
 using namespace daisy;
