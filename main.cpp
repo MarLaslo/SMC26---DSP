@@ -1,13 +1,13 @@
 /** SMC26 DSP course starter project.
  *
- *  dsp::StringVoice, played live from 4 pots and a button on a bare
+ *  dsp::Granular, played live from 3 pots and a button on a bare
  *  Daisy Seed:
  *
  *      Pot 1 (D15 / A0) -> Frequency
- *      Pot 2 (D16 / A1) -> Structure (curved bridge / dispersion)
- *      Pot 3 (D17 / A2) -> Brightness
- *      Pot 4 (D18 / A3) -> Damping (decay time)
- *      Button           -> Strike (press to re-strike)
+ *      Pot 2 (D16 / A1) -> Grain size
+ *      Pot 3 (D17 / A2) -> Scan speed (how fast the grains drift
+ *                          through the buffer; centered = frozen)
+ *      Button           -> Gate (hold to trigger the amp envelope)
  *
  *  Wiring:
  *      Each pot: outer legs to 3V3 and GND, middle wiper to its D pin.
@@ -18,19 +18,17 @@
  */
 #include "daisysp.h"
 #include "dsp/Mapping.h"
-#include "dsp/Synthesis.h"
+#include "dsp/Granular.h"
 #include "hardware.h"
 
 using namespace daisy;
 
 AnalogIn  potFreq(seed::D15, "frequency", 0.05f); // longer slew: feeds base freq
-AnalogIn  potStructure(seed::D16, "structure");
-AnalogIn  potBrightness(seed::D17, "brightness");
-AnalogIn  potDamping(seed::D18, "damping");
-DigitalIn button(seed::D9, "strike button");
+AnalogIn  potGrainSize(seed::D16, "grain size");
+AnalogIn  potSpeed(seed::D17, "scan speed");
+DigitalIn gateButton(seed::D9, "gate button");
 
-dsp::StringVoice voice;
-bool             button_was_pressed = false;
+dsp::Granular voice;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -57,19 +55,17 @@ int main(void)
         UpdateControls();
 
         float freq       = dsp::MapLinear(potFreq.Value(), 80.f, 1000.f);
-        float structure  = potStructure.Value();
-        float brightness = potBrightness.Value();
-        float damping    = potDamping.Value();
+        float grain_size  = dsp::MapLinear(potGrainSize.Value(), 5.f, 200.f);
+        float speed       = dsp::MapLinear(potSpeed.Value(), -2.f, 2.f);
 
         voice.SetFreq(freq);
-        voice.SetStructure(structure);
-        voice.SetBrightness(brightness);
-        voice.SetDamping(damping);
+        voice.SetGrainSize(grain_size);
+        voice.SetSpeed(speed);
 
-        bool button_pressed = button.Value();
-        if(button_pressed && !button_was_pressed)
-            voice.Strike();
-        button_was_pressed = button_pressed;
+        if(gateButton.Value())
+            voice.NoteOn();
+        else
+            voice.NoteOff();
 
         System::Delay(1);
     }
