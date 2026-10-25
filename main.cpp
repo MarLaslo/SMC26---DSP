@@ -1,12 +1,11 @@
 /** SMC26 DSP course starter project.
  *
- *  dsp::HiHat (808-style metallic noise), played live from 3 pots and
- *  a button on a bare Daisy Seed:
+ *  dsp::SteppedNoise (sample-and-held noise), played live from 2
+ *  pots and a button on a bare Daisy Seed:
  *
- *      Pot 1 (D15 / A0) -> Frequency
- *      Pot 2 (D16 / A1) -> Decay
- *      Pot 3 (D17 / A2) -> Noisiness (tone vs. noise mix)
- *      Button           -> Hit (triggers the hi-hat on each press)
+ *      Pot 1 (D15 / A0) -> Step rate (how often a new random value is held)
+ *      Pot 2 (D16 / A1) -> Output level
+ *      Button           -> Sync (forces a fresh random value on each press)
  *
  *  Wiring:
  *      Each pot: outer legs to 3V3 and GND, middle wiper to its D pin.
@@ -17,17 +16,17 @@
  */
 #include "daisysp.h"
 #include "dsp/Mapping.h"
-#include "dsp/Drums.h"
+#include "dsp/Noise.h"
 #include "hardware.h"
 
 using namespace daisy;
 
-AnalogIn  potFreq(seed::D15, "frequency");
-AnalogIn  potDecay(seed::D16, "decay");
-AnalogIn  potNoisiness(seed::D17, "noisiness");
-DigitalIn hitButton(seed::D9, "hit button");
+AnalogIn  potRate(seed::D15, "step rate");
+AnalogIn  potLevel(seed::D16, "level");
+DigitalIn syncButton(seed::D9, "sync button");
 
-dsp::HiHat hat;
+dsp::SteppedNoise noise;
+float             level = 0.5f;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -35,8 +34,8 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 {
     for(size_t i = 0; i < size; i++)
     {
-        float sample = hat.Process();
-        sample *= 0.8f;
+        float sample = noise.Process();
+        sample *= level;
         OUT_L[i] = sample;
         OUT_R[i] = sample;
     }
@@ -45,7 +44,7 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 int main(void)
 {
     InitHardware();
-    hat.Init(hw.AudioSampleRate());
+    noise.Init(hw.AudioSampleRate());
 
     hw.StartAudio(AudioCallback);
 
@@ -55,13 +54,12 @@ int main(void)
     {
         UpdateControls();
 
-        hat.SetFreq(dsp::MapLinear(potFreq.Value(), 2000.f, 8000.f));
-        hat.SetDecay(dsp::MapLinear(potDecay.Value(), 0.f, 1.f));
-        hat.SetNoisiness(dsp::MapLinear(potNoisiness.Value(), 0.f, 1.f));
+        noise.SetFreq(dsp::MapLinear(potRate.Value(), 20.f, 8000.f));
+        level = dsp::MapLinear(potLevel.Value(), 0.f, 1.f);
 
-        bool pressed = hitButton.Value();
+        bool pressed = syncButton.Value();
         if(pressed && !was_pressed)
-            hat.Hit();
+            noise.Sync();
         was_pressed = pressed;
 
         System::Delay(1);

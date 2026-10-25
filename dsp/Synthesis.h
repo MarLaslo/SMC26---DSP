@@ -20,3 +20,4 @@
 #include "Granular.h"
 #include "Additive.h"
 #include "Drums.h"
+#include "Noise.h"
