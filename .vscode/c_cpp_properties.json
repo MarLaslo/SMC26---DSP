@@ -21,7 +21,8 @@
                 "${workspaceFolder}/libs/libDaisy/Middlewares/ST/STM32_USB_Host_Library/Class/MSC/Inc",
                 "${workspaceFolder}/libs/libDaisy/Middlewares/ST/STM32_USB_Host_Library/Class/MIDI/Inc",
                 "${workspaceFolder}/libs/libDaisy/Middlewares/Third_Party/FatFs/src",
-                "${workspaceFolder}/libs/DaisySP/Source"
+                "${workspaceFolder}/libs/DaisySP/Source",
+                "${workspaceFolder}/libs/DaisySP/DaisySP-LGPL/Source"
             ],
             "defines": [
                 "USE_HAL_DRIVER",
