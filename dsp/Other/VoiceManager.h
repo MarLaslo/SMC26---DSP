@@ -83,6 +83,11 @@ class VoiceManager
      *  SetAmpAttack, ...). */
     T& Voice(int v) { return voices_[v]; }
 
+    /** The frequency voice `v` was last given via NoteOn, regardless
+     *  of whether it's still active - handy for layering a vibrato LFO
+     *  on top: voices.Voice(v).SetFreq(voices.Freq(v) + depth * lfo). */
+    float Freq(int v) const { return freq_[v]; }
+
   private:
     T     voices_[N];
     float freq_[N];

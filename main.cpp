@@ -23,16 +23,23 @@ using namespace daisy;
 DigitalIn note1Button(seed::D9, "note 1 button");
 DigitalIn note2Button(seed::D8, "note 2 button");
 
-AnalogIn cutoffKnob(seed::D15, "cutoff");
-AnalogIn resonanceKnob(seed::D16, "resonance");
-AnalogIn filterEnvKnob(seed::D17, "filter env amount");
-AnalogIn releaseKnob(seed::D18, "release");
+AnalogIn structureKnob(seed::D15, "structure");
+AnalogIn brightnessKnob(seed::D16, "brightness");
+AnalogIn dampingKnob(seed::D17, "damping");
+AnalogIn accentKnob(seed::D18, "accent");
 
 constexpr float kNote1Freq  = 220.f; // A3
 constexpr float kNote2Freq  = 330.f; // E4
 constexpr int   kNumVoices  = 2;
 
-dsp::VoiceManager<dsp::Subtractive, kNumVoices> voices;
+dsp::VoiceManager<dsp::ModalVoice, kNumVoices> voices;
+
+// A free-running LFO, here used for vibrato on each voice's pitch.
+// Swap SetFreq/the depth below, or point a Process() call at any
+// other parameter instead (amplitude for tremolo, cutoff for a filter
+// wobble, ...) - see dsp/Other/Lfo.h.
+dsp::Lfo         vibrato;
+constexpr float  kVibratoDepthHz = 8.f;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -40,6 +47,10 @@ void AudioCallback(AudioHandle::InputBuffer  in,
 {
     for(size_t i = 0; i < size; i++)
     {
+        float vibratoOffset = kVibratoDepthHz * vibrato.Process();
+        for(int v = 0; v < kNumVoices; v++)
+            voices.Voice(v).SetFreq(voices.Freq(v) + vibratoOffset);
+
         float sample = voices.Process();
         OUT_L[i]     = sample;
         OUT_R[i]     = sample;
@@ -50,6 +61,8 @@ int main(void)
 {
     InitHardware();
     voices.Init(hw.AudioSampleRate());
+    vibrato.Init(hw.AudioSampleRate());
+    vibrato.SetFreq(5.f);
 
     hw.StartAudio(AudioCallback);
 
@@ -60,17 +73,17 @@ int main(void)
     {
         UpdateControls();
 
-        float cutoff          = dsp::MapExponential(cutoffKnob.Value(), 200.f, 5000.f);
-        float resonance       = resonanceKnob.Value();
-        float filterEnvAmount = dsp::MapLinear(filterEnvKnob.Value(), 0.f, 4000.f);
-        float release         = dsp::MapExponential(releaseKnob.Value(), 0.05f, 2.f);
+        float structure  = structureKnob.Value();
+        float brightness = brightnessKnob.Value();
+        float damping    = dampingKnob.Value();
+        float accent     = accentKnob.Value();
 
         for(int v = 0; v < kNumVoices; v++)
         {
-            voices.Voice(v).SetCutoff(cutoff);
-            voices.Voice(v).SetResonance(resonance);
-            voices.Voice(v).SetFilterEnvAmount(filterEnvAmount);
-            voices.Voice(v).SetAmpRelease(release);
+            voices.Voice(v).SetStructure(structure);
+            voices.Voice(v).SetBrightness(brightness);
+            voices.Voice(v).SetDamping(damping);
+            voices.Voice(v).SetAccent(accent);
         }
 
         bool note1Is = note1Button.Value();

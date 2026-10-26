@@ -46,6 +46,16 @@ class StringVoice
     /** Strikes the string, like a pluck. */
     void Strike() { string_.Trig(); }
 
+    /** Alias for Strike(), so StringVoice fits the same NoteOn/NoteOff
+     *  shape as the other synth voices (e.g. for use with VoiceManager). */
+    void NoteOn() { Strike(); }
+
+    /** The string rings out and decays on its own after being struck,
+     *  so there's nothing to release - this only matters if
+     *  SetSustain(true) is active, in which case it stops the
+     *  continuous excitation. */
+    void NoteOff() { SetSustain(false); }
+
     /** Keeps exciting the string with continuous noise instead of
      *  discrete strikes, for a bowed character. */
     void SetSustain(bool sustain) { string_.SetSustain(sustain); }

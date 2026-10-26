@@ -35,6 +35,16 @@ class SynthBassDrum
     /** Hits the drum. */
     void Hit() { drum_.Trig(); }
 
+    /** Alias for Hit(), so SynthBassDrum fits the same NoteOn/NoteOff
+     *  shape as the other synth voices (e.g. for use with VoiceManager). */
+    void NoteOn() { Hit(); }
+
+    /** The drum rings out and decays on its own after being hit, so
+     *  there's nothing to release - this only matters if
+     *  SetSustain(true) is active, in which case it stops the
+     *  endless ring. */
+    void NoteOff() { SetSustain(false); }
+
     /** Root (fundamental) frequency of the drum body, Hz. */
     void SetFreq(float freq_hz) { drum_.SetFreq(freq_hz); }
 
@@ -93,6 +103,16 @@ class SynthSnareDrum
     /** Hits the drum. */
     void Hit() { drum_.Trig(); }
 
+    /** Alias for Hit(), so SynthSnareDrum fits the same NoteOn/NoteOff
+     *  shape as the other synth voices (e.g. for use with VoiceManager). */
+    void NoteOn() { Hit(); }
+
+    /** The drum rings out and decays on its own after being hit, so
+     *  there's nothing to release - this only matters if
+     *  SetSustain(true) is active, in which case it stops the
+     *  endless ring. */
+    void NoteOff() { SetSustain(false); }
+
     /** Root (fundamental) frequency of the drum's two tones, Hz. */
     void SetFreq(float freq_hz) { drum_.SetFreq(freq_hz); }
 
@@ -145,6 +165,16 @@ class HiHat
 
     /** Hits the hi-hat. */
     void Hit() { hat_.Trig(); }
+
+    /** Alias for Hit(), so HiHat fits the same NoteOn/NoteOff shape as
+     *  the other synth voices (e.g. for use with VoiceManager). */
+    void NoteOn() { Hit(); }
+
+    /** The hi-hat rings out and decays on its own after being hit, so
+     *  there's nothing to release - this only matters if
+     *  SetSustain(true) is active, in which case it stops the
+     *  endless ring. */
+    void NoteOff() { SetSustain(false); }
 
     /** Root frequency the metallic noise is built from, Hz. */
     void SetFreq(float freq_hz) { hat_.SetFreq(freq_hz); }

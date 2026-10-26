@@ -43,6 +43,16 @@ class ModalVoice
     /** Strikes the resonator, like a mallet hit. */
     void Strike() { modal_.Trig(); }
 
+    /** Alias for Strike(), so ModalVoice fits the same NoteOn/NoteOff
+     *  shape as the other synth voices (e.g. for use with VoiceManager). */
+    void NoteOn() { Strike(); }
+
+    /** The resonator rings out and decays on its own after being
+     *  struck, so there's nothing to release - this only matters if
+     *  SetSustain(true) is active, in which case it stops the
+     *  continuous excitation. */
+    void NoteOff() { SetSustain(false); }
+
     /** Keeps exciting the resonator with continuous noise instead of
      *  discrete strikes, for a bowed/blown character. */
     void SetSustain(bool sustain) { modal_.SetSustain(sustain); }

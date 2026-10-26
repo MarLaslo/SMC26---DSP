@@ -13,4 +13,5 @@
 #include "Adsr.h"
 #include "AdEnvelope.h"
 #include "Limiter.h"
+#include "Lfo.h"
 #include "VoiceManager.h"

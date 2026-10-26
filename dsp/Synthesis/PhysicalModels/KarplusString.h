@@ -52,6 +52,15 @@ class KarplusString
         pluck_samples_left_ = pluck_samples_total_;
     }
 
+    /** Alias for Pluck(), so KarplusString fits the same NoteOn/
+     *  NoteOff shape as the other synth voices (e.g. for use with
+     *  VoiceManager). */
+    void NoteOn() { Pluck(); }
+
+    /** The string rings out and decays on its own after being
+     *  plucked, so there's nothing to release. */
+    void NoteOff() {}
+
     /** Returns the next audio sample. */
     float Process()
     {
