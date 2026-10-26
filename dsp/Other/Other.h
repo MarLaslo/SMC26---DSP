@@ -15,3 +15,4 @@
 #include "Limiter.h"
 #include "Lfo.h"
 #include "VoiceManager.h"
+#include "Sequencer.h"

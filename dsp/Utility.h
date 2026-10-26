@@ -166,4 +166,57 @@ inline float ApplyGain(float sample, float db)
     return sample * DbToLinear(db);
 }
 
+/** Converts a note name - letter A-G (either case), optional '#'
+ *  (sharp) or 'b' (flat), then an octave number - to its frequency in
+ *  Hz, using scientific pitch notation: A4 = `a4_freq` and C4 = middle
+ *  C. Lets you write NoteToFreq("F#3") instead of having to know it's
+ *  185 Hz - handy for sequencer patterns and anywhere else you'd
+ *  rather think in notes than in Hz.
+ *
+ *  `a4_freq` defaults to 440 Hz, the standard concert pitch - pass
+ *  something else (e.g. 432.f) to retune everything that goes through
+ *  this function without touching the note names themselves.
+ *
+ *  e.g. NoteToFreq("A4") == 440.f, NoteToFreq("C4") ~= 261.63f,
+ *  NoteToFreq("Bb5") ~= 932.33f, NoteToFreq("A4", 432.f) == 432.f.
+ */
+inline float NoteToFreq(const char* note, float a4_freq = 440.f)
+{
+    static const int kSemitoneFromC[] = {9, 11, 0, 2, 4, 5, 7}; // A..G
+
+    char letter = note[0];
+    if(letter >= 'a' && letter <= 'g')
+        letter = letter - 'a' + 'A';
+    if(letter < 'A' || letter > 'G')
+        return 0.f;
+    int semitone = kSemitoneFromC[letter - 'A'];
+
+    int i = 1;
+    if(note[i] == '#')
+    {
+        semitone++;
+        i++;
+    }
+    else if(note[i] == 'b')
+    {
+        semitone--;
+        i++;
+    }
+
+    bool negative_octave = false;
+    if(note[i] == '-')
+    {
+        negative_octave = true;
+        i++;
+    }
+    int octave = 0;
+    for(; note[i] >= '0' && note[i] <= '9'; i++)
+        octave = octave * 10 + (note[i] - '0');
+    if(negative_octave)
+        octave = -octave;
+
+    int semitones_from_a4 = semitone - 9 + (octave - 4) * 12;
+    return a4_freq * powf(2.f, static_cast<float>(semitones_from_a4) / 12.f);
+}
+
 } // namespace dsp

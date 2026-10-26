@@ -1,9 +1,9 @@
 /** SMC26 DSP course starter project.
  *
- *  Demo: two buttons, each playing its own note, sharing a small pool
- *  of voices via dsp::VoiceManager. Pressing both at once plays both
- *  notes together - that's the "polyphony" VoiceManager buys you over
- *  wiring a single voice straight to a single button.
+ *  Demo: an 8-step sequencer plays an example pattern on its own,
+ *  through a small pool of voices shared via dsp::VoiceManager.
+ *  accentKnob speeds/slows it; note1Button stops/resumes it;
+ *  note2Button jumps it back to the first step.
  *
  *  Add your own sensors in hardware.h-style declarations above
  *  AudioCallback, create your dsp:: objects, Init() them in main(),
@@ -20,17 +20,15 @@
 
 using namespace daisy;
 
-DigitalIn note1Button(seed::D9, "note 1 button");
-DigitalIn note2Button(seed::D8, "note 2 button");
+DigitalIn playStopButton(seed::D9, "play/stop button");
+DigitalIn resetButton(seed::D8, "reset button");
 
 AnalogIn structureKnob(seed::D15, "structure");
 AnalogIn brightnessKnob(seed::D16, "brightness");
 AnalogIn dampingKnob(seed::D17, "damping");
-AnalogIn accentKnob(seed::D18, "accent");
+AnalogIn tempoKnob(seed::D18, "tempo");
 
-constexpr float kNote1Freq  = 220.f; // A3
-constexpr float kNote2Freq  = 330.f; // E4
-constexpr int   kNumVoices  = 2;
+constexpr int kNumVoices = 2;
 
 dsp::VoiceManager<dsp::ModalVoice, kNumVoices> voices;
 
@@ -38,8 +36,14 @@ dsp::VoiceManager<dsp::ModalVoice, kNumVoices> voices;
 // Swap SetFreq/the depth below, or point a Process() call at any
 // other parameter instead (amplitude for tremolo, cutoff for a filter
 // wobble, ...) - see dsp/Other/Lfo.h.
-dsp::Lfo         vibrato;
-constexpr float  kVibratoDepthHz = 8.f;
+dsp::Lfo        vibrato;
+constexpr float kVibratoDepthHz = 8.f;
+
+// Plays itself: an 8-step example pattern, looping at a tempo set by
+// tempoKnob. Edit kPattern below (and sequencer.SetNumSteps if you
+// change how many notes are in it) to make your own. See
+// dsp/Other/Sequencer.h.
+dsp::Sequencer sequencer;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -50,6 +54,9 @@ void AudioCallback(AudioHandle::InputBuffer  in,
         float vibratoOffset = kVibratoDepthHz * vibrato.Process();
         for(int v = 0; v < kNumVoices; v++)
             voices.Voice(v).SetFreq(voices.Freq(v) + vibratoOffset);
+
+        if(sequencer.Process() && sequencer.CurrentGate())
+            voices.NoteOn(sequencer.CurrentFreq());
 
         float sample = voices.Process();
         OUT_L[i]     = sample;
@@ -64,10 +71,18 @@ int main(void)
     vibrato.Init(hw.AudioSampleRate());
     vibrato.SetFreq(5.f);
 
+    sequencer.Init(hw.AudioSampleRate());
+    sequencer.SetTempo(120.f);
+    // Note names instead of Hz - see dsp::NoteToFreq in dsp/Utility.h.
+    static const char* kPattern[] = {"A3", "C4", "D4", "E4", "G4", "E4", "D4", "C4"};
+    for(int i = 0; i < 8; i++)
+        sequencer.SetStep(i, dsp::NoteToFreq(kPattern[i]));
+    sequencer.SetNumSteps(8);
+
     hw.StartAudio(AudioCallback);
 
-    bool note1Was = false;
-    bool note2Was = false;
+    bool playStopWas = false;
+    bool resetWas    = false;
 
     while(1)
     {
@@ -76,29 +91,32 @@ int main(void)
         float structure  = structureKnob.Value();
         float brightness = brightnessKnob.Value();
         float damping    = dampingKnob.Value();
-        float accent     = accentKnob.Value();
 
         for(int v = 0; v < kNumVoices; v++)
         {
             voices.Voice(v).SetStructure(structure);
             voices.Voice(v).SetBrightness(brightness);
             voices.Voice(v).SetDamping(damping);
-            voices.Voice(v).SetAccent(accent);
         }
 
-        bool note1Is = note1Button.Value();
-        if(note1Is && !note1Was)
-            voices.NoteOn(kNote1Freq);
-        else if(!note1Is && note1Was)
-            voices.NoteOff(kNote1Freq);
-        note1Was = note1Is;
+        // 60 - 240 BPM; see dsp/Utility.h's MapExponential for why time
+        // knobs want the exponential mapping rather than MapLinear.
+        sequencer.SetTempo(dsp::MapExponential(tempoKnob.Value(), 60.f, 240.f));
 
-        bool note2Is = note2Button.Value();
-        if(note2Is && !note2Was)
-            voices.NoteOn(kNote2Freq);
-        else if(!note2Is && note2Was)
-            voices.NoteOff(kNote2Freq);
-        note2Was = note2Is;
+        bool playStopIs = playStopButton.Value();
+        if(playStopIs && !playStopWas)
+        {
+            if(sequencer.IsRunning())
+                sequencer.Stop();
+            else
+                sequencer.Start();
+        }
+        playStopWas = playStopIs;
+
+        bool resetIs = resetButton.Value();
+        if(resetIs && !resetWas)
+            sequencer.Reset();
+        resetWas = resetIs;
 
         System::Delay(1);
     }
