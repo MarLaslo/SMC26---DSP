@@ -13,6 +13,7 @@
 #include "WaveFolder.h"
 #include "SampleRateReducer.h"
 #include "Tremolo.h"
+#include "Delay.h"
 #include "Chorus.h"
 #include "Flanger.h"
 #include "Phaser.h"
