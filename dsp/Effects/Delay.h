@@ -1,32 +1,15 @@
 #pragma once
 
+#include <cmath>
 #include <cstddef>
-#include "dev/sdram.h"
+#include "../Utility.h"
+#include "Utility/delayline.h"
+#include "Utility/dsp.h"
 
 namespace dsp
 {
-namespace delay_detail
-{
-/** Longest delay time this can hold, in seconds. */
-constexpr float kMaxDelaySeconds = 1.f;
-/** Longest delay time this can hold, assuming a sample rate of up to
- *  48 kHz. */
-constexpr size_t kMaxDelaySamples
-    = static_cast<size_t>(kMaxDelaySeconds * 48000.f);
-
-/** The echo buffer itself, kept outside the Delay class so the
- *  `section` attribute below can place it in the Daisy's external
- *  SDRAM instead of its scarce internal RAM (that attribute only
- *  works on variables with static storage). */
-static float buffer[kMaxDelaySamples] DSY_SDRAM_BSS;
-} // namespace delay_detail
-
 /** Delay: a classic echo. Repeats the input after a set time, with each
  *  repeat quieter than the last.
- *
- *  The echo buffer lives in the Daisy's external SDRAM rather than its
- *  small internal RAM, since even a modest delay time needs far more
- *  space than the chip's internal memory has to spare.
  *
  *  Usage:
  *      Delay delay;
@@ -40,25 +23,33 @@ class Delay
 {
   public:
     /** Longest delay time this can hold, in seconds. */
-    static constexpr float kMaxDelaySeconds = delay_detail::kMaxDelaySeconds;
+    static constexpr float kMaxDelaySeconds = 1.f;
     /** Longest delay time this can hold, assuming a sample rate of up to
      *  48 kHz. */
-    static constexpr size_t kMaxDelaySamples = delay_detail::kMaxDelaySamples;
+    static constexpr size_t kMaxDelaySamples
+        = static_cast<size_t>(kMaxDelaySeconds * 48000.f);
 
     void Init(float sample_rate)
     {
         sample_rate_ = sample_rate;
-        write_ptr_   = 0;
-        for(size_t i = 0; i < kMaxDelaySamples; i++)
-        {
-            delay_detail::buffer[i] = 0.f;
-        }
+        // Time constant for smoothing the delay time (see SetTimeMs).
+        smooth_coeff_ = 1.f - expf(-1.f / (0.12f * sample_rate_));
+        line_.Init();
         SetTimeMs(350.f);
-        SetFeedback(0.4f);
+        current_samples_ = target_samples_;
+        SetFeedback(0.7f);
         SetMix(0.5f);
     }
 
-    /** Time between repeats, in milliseconds. Range: 0 - 1000 ms. */
+    /** Time between repeats, in milliseconds. Range: 0 - 1000 ms.
+     *
+     *  Expected to be called continuously (e.g. once per control-loop
+     *  tick from a knob), so the actual delay time glides smoothly
+     *  toward this target rather than snapping to it - snapping would
+     *  jump the read position by a sample or more on every call, which
+     *  clicks audibly even from the small jitter a knob reading has
+     *  while sitting still. The glide is also what gives a "tape
+     *  echo" its pitch-bend character when you sweep the time by hand. */
     void SetTimeMs(float ms)
     {
         float samples = ms * 0.001f * sample_rate_;
@@ -70,12 +61,17 @@ class Delay
         {
             samples = static_cast<float>(kMaxDelaySamples - 1);
         }
-        delay_samples_ = static_cast<size_t>(samples);
+        target_samples_ = samples;
     }
 
     /** How much of the repeated signal feeds back into itself, for more
-     *  repeats. Range: 0 (single repeat) - 1 (repeats forever). */
-    void SetFeedback(float feedback) { feedback_ = feedback; }
+     *  repeats. Range: 0 (single repeat) - 1 (repeats forever).
+     *
+     *  Capped just under 1: at exactly 1 the loop's gain (roughly
+     *  1 / (1 - feedback) for a held, continuous input) diverges, so
+     *  a sustained note builds up without bound the longer it's held,
+     *  eventually overwhelming SoftClip's headroom and distorting. */
+    void SetFeedback(float feedback) { feedback_ = Clamp(feedback, 0.f, 0.97f); }
 
     /** Balance between the dry input and the delayed signal. Range: 0
      *  (dry only) - 1 (delayed signal only). */
@@ -84,22 +80,25 @@ class Delay
     /** Returns the next audio sample. */
     float Process(float in)
     {
-        size_t read_ptr
-            = (write_ptr_ + kMaxDelaySamples - delay_samples_) % kMaxDelaySamples;
-        float delayed = delay_detail::buffer[read_ptr];
+        current_samples_ += (target_samples_ - current_samples_) * smooth_coeff_;
+        line_.SetDelay(current_samples_);
 
-        delay_detail::buffer[write_ptr_] = in + delayed * feedback_;
-        write_ptr_                       = (write_ptr_ + 1) % kMaxDelaySamples;
+        float delayed = line_.Read();
+        line_.Write(in + delayed * feedback_);
 
-        return in + (delayed - in) * mix_;
+        float wet = mix_ * delayed;
+        float dry = (1.f - mix_) * in;
+        return daisysp::SoftClip(dry + wet);
     }
 
   private:
-    float  sample_rate_   = 48000.f;
-    float  feedback_      = 0.4f;
-    float  mix_           = 0.5f;
-    size_t write_ptr_      = 0;
-    size_t delay_samples_ = 1;
+    float                                        sample_rate_     = 48000.f;
+    float                                        feedback_        = 0.7f;
+    float                                        mix_             = 0.5f;
+    float                                        target_samples_  = 1.f;
+    float                                        current_samples_ = 1.f;
+    float                                        smooth_coeff_    = 1.f;
+    daisysp::DelayLine<float, kMaxDelaySamples> line_;
 };
 
 } // namespace dsp

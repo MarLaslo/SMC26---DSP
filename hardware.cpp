@@ -48,6 +48,14 @@ DigitalIn* DigitalIn::At(size_t index)
 
 void InitHardware()
 {
+    // Flush denormal floats to zero. Without this, a value decaying
+    // toward (but never quite reaching) zero - a delay repeat trailing
+    // off, an envelope's release tail - becomes a "denormal" number
+    // that this FPU takes dramatically longer to do arithmetic on,
+    // long enough to blow the audio callback's time budget and cause
+    // an audible click/pop with no knob involved at all.
+    __set_FPSCR(__get_FPSCR() | (1 << 24) | (1 << 25));
+
     hw.Init();
     // hw.StartLog();
 

@@ -11,6 +11,7 @@
  *  will be filled in as the course progresses.
  */
 
+#include "Oscillator.h"
 #include "Subtractive.h"
 #include "FM.h"
 #include "FMSimple.h"
