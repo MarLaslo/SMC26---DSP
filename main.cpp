@@ -23,10 +23,16 @@ using namespace daisy;
 DigitalIn note1Button(seed::D9, "note 1 button");
 DigitalIn note2Button(seed::D8, "note 2 button");
 
-constexpr float kNote1Freq = 220.f; // A3
-constexpr float kNote2Freq = 330.f; // E4
+AnalogIn cutoffKnob(seed::D15, "cutoff");
+AnalogIn resonanceKnob(seed::D16, "resonance");
+AnalogIn filterEnvKnob(seed::D17, "filter env amount");
+AnalogIn releaseKnob(seed::D18, "release");
 
-dsp::VoiceManager<dsp::Subtractive, 2> voices;
+constexpr float kNote1Freq  = 220.f; // A3
+constexpr float kNote2Freq  = 330.f; // E4
+constexpr int   kNumVoices  = 2;
+
+dsp::VoiceManager<dsp::Subtractive, kNumVoices> voices;
 
 void AudioCallback(AudioHandle::InputBuffer  in,
                     AudioHandle::OutputBuffer out,
@@ -53,6 +59,19 @@ int main(void)
     while(1)
     {
         UpdateControls();
+
+        float cutoff          = dsp::MapExponential(cutoffKnob.Value(), 200.f, 5000.f);
+        float resonance       = resonanceKnob.Value();
+        float filterEnvAmount = dsp::MapLinear(filterEnvKnob.Value(), 0.f, 4000.f);
+        float release         = dsp::MapExponential(releaseKnob.Value(), 0.05f, 2.f);
+
+        for(int v = 0; v < kNumVoices; v++)
+        {
+            voices.Voice(v).SetCutoff(cutoff);
+            voices.Voice(v).SetResonance(resonance);
+            voices.Voice(v).SetFilterEnvAmount(filterEnvAmount);
+            voices.Voice(v).SetAmpRelease(release);
+        }
 
         bool note1Is = note1Button.Value();
         if(note1Is && !note1Was)
