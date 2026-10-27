@@ -1,4 +1,4 @@
-/** Small helpers for mapping a 0..1 control value (e.g. AnalogIn::Value())
+/** Small helpers for mapping a 0..1 control value (e.g. Potentiometer::Read())
  *  onto a parameter's real range.
  */
 #pragma once

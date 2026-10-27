@@ -1,117 +1,106 @@
 /** SMC26 DSP course starter project.
  *
- *  Demo: an 8-step drum sequencer, playing kick/snare/hat on its own.
- *  tempoKnob speeds/slows it; playStopButton stops/resumes it;
- *  resetButton jumps it back to the first step.
+ *  Declare your sensors (see sensors/sensors.h) and dsp:: objects
+ *  above AudioCallback, Init() them in main(), and call their
+ *  Process() methods inside AudioCallback to hear something.
  *
- *  Add your own sensors in hardware.h-style declarations above
- *  AudioCallback, create your dsp:: objects, Init() them in main(),
- *  and call their Process() methods inside AudioCallback to hear
- *  something.
+ *  For finished instruments to copy from, see examples/.
  */
+#include "daisy_seed.h"
 #include "daisysp.h"
 #include "dsp/Utility.h"
 #include "dsp/Synthesis/Synthesis.h"
 #include "dsp/Effects/Effects.h"
 #include "dsp/Filters/Filters.h"
 #include "dsp/Other/Other.h"
-#include "hardware.h"
+#include "sensors/sensors.h"
 
 using namespace daisy;
 
-DigitalIn playStopButton(seed::D9, "play/stop button");
-DigitalIn resetButton(seed::D8, "reset button");
+DaisySeed hw;
 
-AnalogIn structureKnob(seed::D15, "kick decay");
-AnalogIn brightnessKnob(seed::D16, "hat brightness");
-AnalogIn dampingKnob(seed::D17, "snare snappy");
-AnalogIn tempoKnob(seed::D18, "tempo");
+Button button1;
+Button button2;
 
-dsp::SynthBassDrum  kick;
-dsp::SynthSnareDrum snare;
-dsp::HiHat          hat;
+Potentiometer knob1;
+Potentiometer knob2;
+Potentiometer knob3;
+Potentiometer knob4;
+Potentiometer knob5;
 
-// Which drum each step hits - Sequencer just hands back whatever
-// number you gave it via SetStep, so here we use it as a drum ID
-// instead of a frequency. See dsp/Other/Sequencer.h.
-constexpr float kKick  = 0.f;
-constexpr float kSnare = 1.f;
-constexpr float kHat   = 2.f;
+// Set by InitHardware() - when true, main() prints the sensor values.
+bool printValues = false;
 
-// Plays itself: an 8-step pattern - Kick, Hat, Hat, Hat, Snare, Hat,
-// Hat, Hat - looping at a tempo set by tempoKnob. Edit kPattern below
-// (and sequencer.SetNumSteps if you change how many hits are in it)
-// to make your own.
-dsp::Sequencer sequencer;
-
-void AudioCallback(AudioHandle::InputBuffer  in,
-                    AudioHandle::OutputBuffer out,
-                    size_t                    size)
+// Sets up the board and the sensors. Pass true to print the sensor
+// values over USB serial (open a serial monitor to see them).
+void InitHardware(bool print)
 {
-    for(size_t i = 0; i < size; i++)
-    {
-        if(sequencer.Process() && sequencer.CurrentGate())
-        {
-            float drum = sequencer.CurrentFreq();
-            if(drum == kKick)
-                kick.Hit();
-            else if(drum == kSnare)
-                snare.Hit();
-            else
-                hat.Hit();
-        }
+    // Flush denormal floats to zero. Without this, a value decaying
+    // toward (but never quite reaching) zero - a delay repeat trailing
+    // off, an envelope's release tail - becomes a "denormal" number
+    // that this FPU takes dramatically longer to do arithmetic on,
+    // long enough to blow the audio callback's time budget and cause
+    // an audible click/pop with no knob involved at all.
+    __set_FPSCR(__get_FPSCR() | (1 << 24) | (1 << 25));
 
-        float sample = kick.Process() + snare.Process() + hat.Process();
-        OUT_L[i]      = sample;
-        OUT_R[i]      = sample;
+    hw.Init();
+
+    printValues = print;
+    if (printValues)
+        hw.StartLog();
+
+    button1.Init(seed::D9);
+    button2.Init(seed::D8);
+
+    knob1.Init(hw, seed::D15);
+    knob2.Init(hw, seed::D16);
+    knob3.Init(hw, seed::D17);
+    knob4.Init(hw, seed::D18);
+    knob5.Init(hw, seed::D19);
+    StartAnalogInputs(hw); // once, after every analog sensor's Init()
+}
+
+// Prints every sensor's value on one line. Add a line here for each
+// sensor you add.
+void PrintValues()
+{
+    PrintValue("button1", button1.IsPressed());
+    PrintValue("button2", button2.IsPressed());
+    PrintValue("knob1", knob1.Read());
+    PrintValue("knob2", knob2.Read());
+    PrintValue("knob3", knob3.Read());
+    PrintValue("knob4", knob4.Read());
+    PrintValue("knob5", knob5.Read());
+    PrintLineEnd();
+}
+
+void AudioCallback(AudioHandle::InputBuffer in,
+                   AudioHandle::OutputBuffer out,
+                   size_t size)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        float sample = 0.f;
+        OUT_L[i] = sample;
+        OUT_R[i] = sample;
     }
 }
 
 int main(void)
 {
-    InitHardware();
-    kick.Init(hw.AudioSampleRate());
-    snare.Init(hw.AudioSampleRate());
-    hat.Init(hw.AudioSampleRate());
+    InitHardware(true);
 
-    sequencer.Init(hw.AudioSampleRate());
-    sequencer.SetTempo(120.f);
-    static const float kPattern[] = {kKick, kHat, kHat, kHat, kSnare, kHat, kHat, kHat};
-    for(int i = 0; i < 8; i++)
-        sequencer.SetStep(i, kPattern[i]);
-    sequencer.SetNumSteps(8);
+    // Init() your dsp:: objects here, before audio starts.
 
     hw.StartAudio(AudioCallback);
 
-    bool playStopWas = false;
-    bool resetWas    = false;
-
-    while(1)
+    while (1)
     {
-        UpdateControls();
+        button1.Update();
+        button2.Update();
 
-        kick.SetDecay(structureKnob.Value());
-        hat.SetTone(brightnessKnob.Value());
-        snare.SetSnappy(dampingKnob.Value());
-
-        // 60 - 240 BPM; see dsp/Utility.h's MapExponential for why time
-        // knobs want the exponential mapping rather than MapLinear.
-        sequencer.SetTempo(dsp::MapExponential(tempoKnob.Value(), 60.f, 240.f));
-
-        bool playStopIs = playStopButton.Value();
-        if(playStopIs && !playStopWas)
-        {
-            if(sequencer.IsRunning())
-                sequencer.Stop();
-            else
-                sequencer.Start();
-        }
-        playStopWas = playStopIs;
-
-        bool resetIs = resetButton.Value();
-        if(resetIs && !resetWas)
-            sequencer.Reset();
-        resetWas = resetIs;
+        if (printValues && TimeToPrint())
+            PrintValues();
 
         System::Delay(1);
     }

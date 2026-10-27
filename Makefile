@@ -2,7 +2,7 @@
 TARGET = main
 
 # Sources
-CPP_SOURCES = main.cpp hardware.cpp
+CPP_SOURCES = main.cpp
 
 # Library Locations
 LIBDAISY_DIR = libs/libDaisy
