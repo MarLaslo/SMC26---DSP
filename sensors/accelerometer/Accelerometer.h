@@ -6,7 +6,7 @@ using namespace daisy;
 
 // Adafruit MMA8451 accelerometer on I2C1 (SCL = D11, SDA = D12).
 // Based on the Arduino Adafruit_MMA8451 library. Range: +-2g, 14-bit.
-class MMA8451
+class Accelerometer
 {
   public:
     // Acceleration in m/s^2, filled in by Read()

@@ -16,7 +16,7 @@ class FlexSensor
     }
 
     // Returns 0.0 to 1.0
-    float Read() { return hw_->adc.GetFloat(channel_); }
+    float Read() { return ReadAnalogInput(*hw_, channel_); }
 
   private:
     DaisySeed* hw_;

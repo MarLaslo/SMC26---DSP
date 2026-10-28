@@ -4,14 +4,20 @@
 
 using namespace daisy;
 
-// Reads a button on a digital pin (e.g. seed::D9), using the internal
-// pull-up resistor. Button connects the pin to GND when pressed.
+// Reads a button with an external pull-up resistor (e.g. on seed::A3).
+// Button connects the pin to GND when pressed.
 //
 // Call Update() once every loop, then use any of the functions below.
 class Button
 {
   public:
-    void Init(Pin pin) { gpio_.Init(pin, GPIO::Mode::INPUT, GPIO::Pull::PULLUP); }
+    // internal_pullup = true if there is no pull-up resistor in hardware
+    void Init(Pin pin, bool internal_pullup = false)
+    {
+        gpio_.Init(pin,
+                   GPIO::Mode::INPUT,
+                   internal_pullup ? GPIO::Pull::PULLUP : GPIO::Pull::NOPULL);
+    }
 
     // Reads the pin and filters out bounce. Call once every loop.
     void Update()

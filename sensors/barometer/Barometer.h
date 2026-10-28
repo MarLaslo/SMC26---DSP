@@ -6,7 +6,7 @@ using namespace daisy;
 
 // Adafruit BMP585 pressure / temperature sensor on I2C1 (SCL = D11, SDA = D12).
 // Register map from the Bosch BMP5 Sensor API.
-class BMP585
+class Barometer
 {
   public:
     // Filled in by Read()

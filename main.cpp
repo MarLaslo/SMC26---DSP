@@ -1,18 +1,20 @@
-/** SMC26 DSP course starter project.
+/** SMC26 DSP course example: modal sequencer.
  *
- *  This is the only file you need to edit. It has four parts, top to
- *  bottom:
- *    1. Sensors     - declare your buttons/knobs/... and set their pins
- *    2. Sound       - declare your dsp:: objects (oscillators, effects, ...)
- *    3. AudioCallback - makes the sound, one sample at a time
- *    4. main()      - runs once at power-on, then loops forever
+ *  An 8-step sequencer plays an example pattern on its own, through
+ *  a small pool of modal-synth voices shared via dsp::VoiceManager.
+ *  structureKnob/brightnessKnob/dampingKnob shape the voices' timbre,
+ *  tempoKnob speeds/slows the sequencer, gainKnob sets the output
+ *  level, playStopButton stops/resumes it, and resetButton jumps it
+ *  back to the first step.
  *
- *  Free pins on the board:
- *    Analog  (knobs, flex, piezo, ...): seed::A0 A1 A2 A3 A4
- *    Digital (buttons):                 seed::D9 D8
- *  (A0-A4 are the same pins as D15-D19 on the Daisy Seed pinout.)
+ *  To try it, copy this whole file into main.cpp.
  *
- *  For finished instruments to copy from, see examples/.
+ *  Wiring:
+ *    playStopButton - seed::D9     structureKnob  - seed::A0
+ *    resetButton    - seed::D8     brightnessKnob - seed::A1
+ *                                  dampingKnob    - seed::A2
+ *                                  tempoKnob      - seed::A3
+ *                                  gainKnob       - seed::A4
  */
 
 // The building blocks: synthesis, effects, filters, utilities, and
@@ -29,25 +31,39 @@
 // 1. Sensors
 // ---------------------------------------------------------------------
 
-// Declare your sensors here (see sensors/sensors.h for every kind),
-// e.g.
-//   Button button1;
-//   Potentiometer knob1;
+Button playStopButton;
+Button resetButton;
 
-// Sets up every input on its pin. Called for you by InitHardware(),
-// so you only fill it in - add one Init() line per sensor, e.g.
+Potentiometer structureKnob;
+Potentiometer brightnessKnob;
+Potentiometer dampingKnob;
+Potentiometer tempoKnob;
+Potentiometer gainKnob;
+
+// Sets up every input on its pin. Called for you by InitHardware().
 void InitInputs()
 {
-    // button1.Init(seed::D9);
-    // knob1.Init(hw, seed::A0);
+    playStopButton.Init(seed::D9);
+    resetButton.Init(seed::D8);
+
+    structureKnob.Init(hw, seed::A0);
+    brightnessKnob.Init(hw, seed::A1);
+    dampingKnob.Init(hw, seed::A2);
+    tempoKnob.Init(hw, seed::A3);
+    gainKnob.Init(hw, seed::A4);
 }
 
 // Prints every sensor's value on one line. Add a line here for each
 // sensor you add. Only runs when printing is on (see main() below).
 void PrintValues()
 {
-    // PrintValue("button1", button1.IsPressed());
-    // PrintValue("knob1", knob1.Read());
+    PrintValue("playStop", playStopButton.IsPressed());
+    PrintValue("reset", resetButton.IsPressed());
+    PrintValue("structure", structureKnob.Read());
+    PrintValue("brightness", brightnessKnob.Read());
+    PrintValue("damping", dampingKnob.Read());
+    PrintValue("tempo", tempoKnob.Read());
+    PrintValue("gain", gainKnob.Read());
     PrintLineEnd();
 }
 
@@ -55,8 +71,30 @@ void PrintValues()
 // 2. Sound
 // ---------------------------------------------------------------------
 
-// Declare your dsp:: objects here, e.g.
-//   dsp::Oscillator osc;
+// How many notes can ring at the same time. A new note takes a free
+// voice, or cuts off the oldest one if they are all busy.
+constexpr int kNumVoices = 2;
+
+dsp::VoiceManager<dsp::ModalVoice, kNumVoices> voices;
+
+// A free-running LFO, here used for vibrato on each voice's pitch.
+// Swap SetFreq/the depth below, or point a Process() call at any
+// other parameter instead (amplitude for tremolo, cutoff for a filter
+// wobble, ...) - see dsp/Other/Lfo.h.
+dsp::Lfo vibrato;
+constexpr float kVibratoDepthHz = 8.f; // how far the pitch wobbles
+
+// Plays itself: an 8-step example pattern, looping at a tempo set by
+// tempoKnob. Edit kPattern below (and sequencer.SetNumSteps if you
+// change how many notes are in it) to make your own. See
+// dsp/Other/Sequencer.h.
+dsp::Sequencer sequencer;
+
+// Read from gainKnob in the control loop below, applied to the output
+// in AudioCallback via dsp::ApplyGain.
+float outputGainDb = 0.f;
+constexpr float kMinGainDb = -48.f; // gainKnob fully down
+constexpr float kMaxGainDb = 12.f;  // gainKnob fully up
 
 // ---------------------------------------------------------------------
 // 3. AudioCallback
@@ -72,9 +110,20 @@ void AudioCallback(AudioHandle::InputBuffer in,
     // Runs once per sample - "size" samples each time
     for (size_t i = 0; i < size; i++)
     {
-        // Work out this sample (a number from -1 to 1) here,
-        // e.g. float sample = osc.Process();
-        float sample = 0.f;
+        // Vibrato: move every voice's pitch a little above and below
+        // the note it is playing
+        float vibratoOffset = kVibratoDepthHz * vibrato.Process();
+        for (int v = 0; v < kNumVoices; v++)
+            voices.Voice(v).SetFreq(voices.Freq(v) + vibratoOffset);
+
+        // Process() moves the sequencer on by one sample and is true
+        // only when a new step starts. If that step isn't a rest,
+        // play its note.
+        if (sequencer.Process() && sequencer.CurrentGate())
+            voices.NoteOn(sequencer.CurrentFreq());
+
+        // Mix all the voices into one sample and set its volume
+        float sample = dsp::ApplyGain(voices.Process(), outputGainDb);
 
         // Send it to the left and right outputs
         OUT_L[i] = sample;
@@ -88,25 +137,71 @@ void AudioCallback(AudioHandle::InputBuffer in,
 
 int main(void)
 {
-    // Sets up the board and your sensors (InitInputs() above).
-    // Change false to true to print the sensor values over USB -
-    // open a serial monitor to see them.
-    InitHardware(false);
+    // Sets up the board and the sensors (InitInputs() above).
+    // true = print the sensor values over USB - open a serial monitor
+    // to see them. Change to false to turn printing off.
+    InitHardware(true);
 
-    // Init() your dsp:: objects here, before audio starts,
-    // e.g. osc.Init(hw.AudioSampleRate());
-    //      osc.NoteOn(); // start the note so you can hear it
+    // Set up the voices and the vibrato (5 wobbles per second) - they
+    // need to know the sample rate
+    voices.Init(hw.AudioSampleRate());
+    vibrato.Init(hw.AudioSampleRate());
+    vibrato.SetFreq(5.f);
+
+    // Set up the sequencer and load the pattern into its 8 steps
+    sequencer.Init(hw.AudioSampleRate());
+    sequencer.SetTempo(120.f);
+    // Note names instead of Hz - see dsp::NoteToFreq in dsp/Utility.h.
+    static const char *kPattern[] = {"A3", "C4", "D4", "E4", "G4", "E4", "D4", "C4"};
+    for (int i = 0; i < 8; i++)
+        sequencer.SetStep(i, dsp::NoteToFreq(kPattern[i]));
+    sequencer.SetNumSteps(8);
 
     // From here on, the board keeps calling AudioCallback
     hw.StartAudio(AudioCallback);
 
-    // Runs forever, alongside the sound. Read your sensors here and
-    // pass their values on to your dsp:: objects,
-    // e.g. osc.SetFreq(dsp::MapLinear(knob1.Read(), 100.f, 1000.f));
+    // Runs forever, alongside the sound: reads the knobs and buttons
+    // and passes their values on to the voices and the sequencer
     while (1)
     {
-        // Call Update() on each button first, so JustPressed() and
-        // IsPressed() see the latest press, e.g. button1.Update();
+        // Read the buttons first, so JustPressed() below sees the
+        // latest press
+        playStopButton.Update();
+        resetButton.Update();
+
+        // Knobs go from 0 to 1, which is what these settings expect
+        float structure = structureKnob.Read();
+        float brightness = brightnessKnob.Read();
+        float damping = dampingKnob.Read();
+
+        // Give the same sound settings to every voice
+        for (int v = 0; v < kNumVoices; v++)
+        {
+            voices.Voice(v).SetStructure(structure);
+            voices.Voice(v).SetBrightness(brightness);
+            voices.Voice(v).SetDamping(damping);
+        }
+
+        // 60 - 240 BPM; see dsp/Utility.h's MapExponential for why time
+        // knobs want the exponential mapping rather than MapLinear.
+        sequencer.SetTempo(dsp::MapExponential(tempoKnob.Read(), 60.f, 240.f));
+
+        // Turn gainKnob's 0 to 1 into a volume from -48 dB to +12 dB
+        outputGainDb = dsp::MapLinear(gainKnob.Read(), kMinGainDb, kMaxGainDb);
+
+        // Each press of playStopButton stops the pattern if it is
+        // playing, or starts it if it is stopped
+        if (playStopButton.JustPressed())
+        {
+            if (sequencer.IsRunning())
+                sequencer.Stop();
+            else
+                sequencer.Start();
+        }
+
+        // resetButton jumps back to the first step
+        if (resetButton.JustPressed())
+            sequencer.Reset();
 
         // About 10 times a second, print the sensor values - only if
         // InitHardware() was given true

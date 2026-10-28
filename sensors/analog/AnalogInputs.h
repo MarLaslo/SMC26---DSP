@@ -5,8 +5,9 @@
 using namespace daisy;
 
 // The Daisy ADC must be set up once for all analog pins.
-// Analog sensors call AddAnalogInput() in their Init(), then main.cpp
-// calls StartAnalogInputs() once after all of them are initialized.
+// Analog sensors call AddAnalogInput() in their Init(). The ADC then starts
+// by itself on the first ReadAnalogInput(), so Init() every analog sensor
+// before reading any of them.
 
 const int kMaxAnalogInputs = 12;
 
@@ -22,6 +23,12 @@ inline int& AnalogCount()
     return count;
 }
 
+inline bool& AnalogStarted()
+{
+    static bool started = false;
+    return started;
+}
+
 // Registers a pin and returns its channel number
 inline int AddAnalogInput(Pin pin)
 {
@@ -30,8 +37,20 @@ inline int AddAnalogInput(Pin pin)
     return channel;
 }
 
+// Starts the ADC with every pin added so far. Only does something the
+// first time, and ReadAnalogInput() calls it for you.
 inline void StartAnalogInputs(DaisySeed& hw)
 {
+    if(AnalogStarted())
+        return;
+    AnalogStarted() = true;
     hw.adc.Init(AnalogConfigs(), AnalogCount());
     hw.adc.Start();
+}
+
+// Returns 0.0 to 1.0, starting the ADC first if needed
+inline float ReadAnalogInput(DaisySeed& hw, int channel)
+{
+    StartAnalogInputs(hw);
+    return hw.adc.GetFloat(channel);
 }
