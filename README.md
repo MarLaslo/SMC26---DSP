@@ -187,7 +187,7 @@ Save your own `main.cpp` somewhere first if you want to keep it.
 
 **Instruments** ([`examples/instruments/`](examples/instruments/)):
 `additive`, `drum_sequence`, `finger_drums`, `fm_filter_envelope`, `fm_simple`, `granular_drone`,
-`modal_sequence`, `strummed_strings`, `subtractive_wobble`, `wind_ocean`.
+`modal_sequence`, `sample_hold_robot`, `strummed_strings`, `subtractive_wobble`, `wind_ocean`.
 
 ## Sound building blocks (`dsp::`)
 
@@ -240,6 +240,7 @@ Start and stop notes with `NoteOn()` / `NoteOff()`. The noise sources have no no
 | `Adsr` | Attack-Decay-Sustain-Release envelope |
 | `AdEnvelope` | Attack-Decay envelope, for hits and plucks |
 | `Lfo` | A slow wobble for vibrato, tremolo or a moving filter |
+| `SampleHold` | Turns a signal (or random values) into steps - the "random robot" bleeps of analog synths |
 | `Sequencer` | A loop of notes that plays itself at a set tempo |
 | `VoiceManager` | Turns any synth into a polyphonic one (several notes at once) |
 | `Limiter` | Keeps the output from getting too loud and distorting |
