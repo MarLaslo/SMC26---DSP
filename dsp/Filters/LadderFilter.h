@@ -39,8 +39,10 @@ class LadderFilter
     /** Cutoff frequency, in Hz. Range: 5 - sample_rate / 2. */
     void SetFreq(float freq_hz) { filter_.SetFreq(freq_hz); }
 
-    /** Resonance / emphasis around the cutoff. Range: 0 - 1.8 (filter
-     *  self-oscillates at the top of that range). */
+    /** Resonance / emphasis around the cutoff. Range: 0 - 1.8. From
+     *  about 1 upward the filter self-oscillates: it whistles a sine
+     *  at the cutoff frequency on its own, even with no input. Keep it
+     *  below 1 for a normal resonant filter. */
     void SetResonance(float resonance) { filter_.SetRes(resonance); }
 
     /** Amount of input drive/saturation into the filter. Range: 0 - 4,

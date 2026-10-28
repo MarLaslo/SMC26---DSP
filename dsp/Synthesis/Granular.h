@@ -71,13 +71,19 @@ class Granular
         transposition_cts_ = 1200.f * log2f(freq_ / root_freq_);
     }
 
-    /** Length of each grain in milliseconds (clamped to a sane range). */
+    /** Length of each grain in milliseconds. Range: 1 ms up to the
+     *  buffer's length (about 85 ms at 48 kHz) - a grain can't be
+     *  longer than the sound it's cut from, so longer values are
+     *  clamped to that. */
     void SetGrainSize(float size_ms)
     {
+        // GranularPlayer wraps its read position only once, so a
+        // grain longer than the buffer would read past its end
+        float max_ms = 1000.f * (kBufferSize - 1) / sample_rate_;
         if(size_ms < 1.f)
             size_ms = 1.f;
-        if(size_ms > 500.f)
-            size_ms = 500.f;
+        if(size_ms > max_ms)
+            size_ms = max_ms;
         grain_size_ms_ = size_ms;
     }
 
@@ -108,11 +114,16 @@ class Granular
 
         for(int i = 0; i < kBufferSize; i++)
             buffer_[i] = osc.Process();
+
+        // GranularPlayer's wrap can land exactly on index kBufferSize
+        // (one past the end), so repeat the first sample there - the
+        // buffer loops seamlessly, so that's the sample it should read
+        buffer_[kBufferSize] = buffer_[0];
     }
 
     daisysp::GranularPlayer player_;
     daisysp::Adsr           amp_env_;
-    float                   buffer_[kBufferSize];
+    float                   buffer_[kBufferSize + 1]; // +1: see FillBuffer()
     float                   sample_rate_       = 48000.f;
     float                   cycles_            = 8.f;
     float                   root_freq_         = 93.75f;
