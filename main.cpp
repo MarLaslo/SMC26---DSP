@@ -1,107 +1,119 @@
 /** SMC26 DSP course starter project.
  *
- *  Declare your sensors (see sensors/sensors.h) and dsp:: objects
- *  above AudioCallback, Init() them in main(), and call their
- *  Process() methods inside AudioCallback to hear something.
+ *  This is the only file you need to edit. It has four parts, top to
+ *  bottom:
+ *    1. Sensors     - declare your buttons/knobs/... and set their pins
+ *    2. Sound       - declare your dsp:: objects (oscillators, effects, ...)
+ *    3. AudioCallback - makes the sound, one sample at a time
+ *    4. main()      - runs once at power-on, then loops forever
+ *
+ *  Free pins on the board:
+ *    Analog  (knobs, flex, piezo, ...): seed::A0 A1 A2 A3 A4
+ *    Digital (buttons):                 seed::D9 D8
+ *  (A0-A4 are the same pins as D15-D19 on the Daisy Seed pinout.)
  *
  *  For finished instruments to copy from, see examples/.
  */
-#include "daisy_seed.h"
+
+// The building blocks: synthesis, effects, filters, utilities, and
+// the board itself (hardware.h). You do not need to change these.
 #include "daisysp.h"
 #include "dsp/Utility.h"
 #include "dsp/Synthesis/Synthesis.h"
 #include "dsp/Effects/Effects.h"
 #include "dsp/Filters/Filters.h"
 #include "dsp/Other/Other.h"
-#include "sensors/sensors.h"
+#include "hardware.h"
 
-using namespace daisy;
+// ---------------------------------------------------------------------
+// 1. Sensors
+// ---------------------------------------------------------------------
 
-DaisySeed hw;
+// Declare your sensors here (see sensors/sensors.h for every kind),
+// e.g.
+//   Button button1;
+//   Potentiometer knob1;
 
-Button button1;
-Button button2;
-
-Potentiometer knob1;
-Potentiometer knob2;
-Potentiometer knob3;
-Potentiometer knob4;
-Potentiometer knob5;
-
-// Set by InitHardware() - when true, main() prints the sensor values.
-bool printValues = false;
-
-// Sets up the board and the sensors. Pass true to print the sensor
-// values over USB serial (open a serial monitor to see them).
-void InitHardware(bool print)
+// Sets up every input on its pin. Called for you by InitHardware(),
+// so you only fill it in - add one Init() line per sensor, e.g.
+void InitInputs()
 {
-    // Flush denormal floats to zero. Without this, a value decaying
-    // toward (but never quite reaching) zero - a delay repeat trailing
-    // off, an envelope's release tail - becomes a "denormal" number
-    // that this FPU takes dramatically longer to do arithmetic on,
-    // long enough to blow the audio callback's time budget and cause
-    // an audible click/pop with no knob involved at all.
-    __set_FPSCR(__get_FPSCR() | (1 << 24) | (1 << 25));
-
-    hw.Init();
-
-    printValues = print;
-    if (printValues)
-        hw.StartLog();
-
-    button1.Init(seed::D9);
-    button2.Init(seed::D8);
-
-    knob1.Init(hw, seed::D15);
-    knob2.Init(hw, seed::D16);
-    knob3.Init(hw, seed::D17);
-    knob4.Init(hw, seed::D18);
-    knob5.Init(hw, seed::D19);
-    StartAnalogInputs(hw); // once, after every analog sensor's Init()
+    // button1.Init(seed::D9);
+    // knob1.Init(hw, seed::A0);
 }
 
 // Prints every sensor's value on one line. Add a line here for each
-// sensor you add.
+// sensor you add. Only runs when printing is on (see main() below).
 void PrintValues()
 {
-    PrintValue("button1", button1.IsPressed());
-    PrintValue("button2", button2.IsPressed());
-    PrintValue("knob1", knob1.Read());
-    PrintValue("knob2", knob2.Read());
-    PrintValue("knob3", knob3.Read());
-    PrintValue("knob4", knob4.Read());
-    PrintValue("knob5", knob5.Read());
+    // PrintValue("button1", button1.IsPressed());
+    // PrintValue("knob1", knob1.Read());
     PrintLineEnd();
 }
 
+// ---------------------------------------------------------------------
+// 2. Sound
+// ---------------------------------------------------------------------
+
+// Declare your dsp:: objects here, e.g.
+//   dsp::Oscillator osc;
+
+// ---------------------------------------------------------------------
+// 3. AudioCallback
+// ---------------------------------------------------------------------
+
+// Called by the board over and over, very fast, to get the next few
+// samples of sound. Keep it quick: no printing and no System::Delay()
+// in here, or the sound will click and drop out.
 void AudioCallback(AudioHandle::InputBuffer in,
                    AudioHandle::OutputBuffer out,
                    size_t size)
 {
+    // Runs once per sample - "size" samples each time
     for (size_t i = 0; i < size; i++)
     {
+        // Work out this sample (a number from -1 to 1) here,
+        // e.g. float sample = osc.Process();
         float sample = 0.f;
+
+        // Send it to the left and right outputs
         OUT_L[i] = sample;
         OUT_R[i] = sample;
     }
 }
 
+// ---------------------------------------------------------------------
+// 4. main()
+// ---------------------------------------------------------------------
+
 int main(void)
 {
-    InitHardware(true);
+    // Sets up the board and your sensors (InitInputs() above).
+    // Change false to true to print the sensor values over USB -
+    // open a serial monitor to see them.
+    InitHardware(false);
 
-    // Init() your dsp:: objects here, before audio starts.
+    // Init() your dsp:: objects here, before audio starts,
+    // e.g. osc.Init(hw.AudioSampleRate());
+    //      osc.NoteOn(); // start the note so you can hear it
 
+    // From here on, the board keeps calling AudioCallback
     hw.StartAudio(AudioCallback);
 
+    // Runs forever, alongside the sound. Read your sensors here and
+    // pass their values on to your dsp:: objects,
+    // e.g. osc.SetFreq(dsp::MapLinear(knob1.Read(), 100.f, 1000.f));
     while (1)
     {
-        button1.Update();
-        button2.Update();
+        // Call Update() on each button first, so JustPressed() and
+        // IsPressed() see the latest press, e.g. button1.Update();
 
+        // About 10 times a second, print the sensor values - only if
+        // InitHardware() was given true
         if (printValues && TimeToPrint())
             PrintValues();
 
+        // Wait 1 millisecond before going round again
         System::Delay(1);
     }
 }
