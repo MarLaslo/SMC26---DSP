@@ -27,6 +27,13 @@ You don't need to open `dsp/`, `sensors/`, `hardware.h` or `libs/` to build an i
 Follow the Daisy guide for your OS: [docs.daisy.audio/tutorials/cpp-dev-env](https://docs.daisy.audio/tutorials/cpp-dev-env/).
 You need `arm-none-eabi-gcc`, `make` and `dfu-util`. VS Code is recommended.
 
+You only need two of the guide's steps:
+
+- **1. Install the Toolchain**: required
+- **3. VS Code**: recommended
+
+**Skip step 2, "Get the Source".** It downloads Daisy's own examples. You get this project in the next step instead.
+
 ### 2. Get the code and build the libraries (once)
 
 ```sh
@@ -36,7 +43,16 @@ make -C libs/libDaisy
 make -C libs/DaisySP
 ```
 
-This takes a minute or two and only has to be done once. In VS Code you can run the task **build_all** instead.
+**No git?** Download the project as a ZIP instead: [SMC26---DSP-main.zip](https://github.com/MarLaslo/SMC26---DSP/archive/refs/heads/main.zip)
+(or on GitHub: **Code → Download ZIP**). Unzip it, then build the libraries from inside the unzipped folder:
+
+```sh
+cd SMC26---DSP-main
+make -C libs/libDaisy
+make -C libs/DaisySP
+```
+
+Building the libraries takes a minute or two and only has to be done once. In VS Code you can run the task **build_all** instead.
 
 ### 3. Build and flash
 
@@ -343,6 +359,9 @@ Turn printing on with `InitHardware(true)`. Printing is slow: never print inside
 - [Daisy community forum](https://community.daisy.audio/)
 
 ## Credits
+
+The course project, the `dsp::` library and the examples come from [MarLaslo/SMC26---DSP](https://github.com/MarLaslo/SMC26---DSP).
+Check there for the latest version.
 
 Sensor classes from [SMCWinterSchool_Daisy](https://github.com/leofogadic/SMCWinterSchool_Daisy).
 Built on [libDaisy](https://github.com/daisyaudio/libDaisy) (MIT) and [DaisySP](https://github.com/daisyaudio/DaisySP) (MIT; the optional DaisySP-LGPL modules are LGPL) by Daisy (formerly Electro-Smith).
