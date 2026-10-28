@@ -1,7 +1,7 @@
 <h1 align="center">SMC26 DSP</h1>
 
 <p align="center">
-  Build sensor-driven music instruments on the <a href="https://electro-smith.com/products/daisy-seed">Daisy Seed</a>, no coding experience needed.<br>
+  Build sensor-driven music instruments on the <a href="https://docs.daisy.audio/hardware/Seed/">Daisy Seed</a>, no coding experience needed.<br>
   Everything you write goes in one file: <code>main.cpp</code>.
 </p>
 
@@ -24,7 +24,7 @@ You don't need to open `dsp/`, `sensors/`, `hardware.h` or `libs/` to build an i
 
 ### 1. Install the toolchain
 
-Follow the Daisy guide for your OS: [daisy.audio/tutorials/cpp-dev-env](https://daisy.audio/tutorials/cpp-dev-env/).
+Follow the Daisy guide for your OS: [docs.daisy.audio/tutorials/cpp-dev-env](https://docs.daisy.audio/tutorials/cpp-dev-env/).
 You need `arm-none-eabi-gcc`, `make` and `dfu-util`. VS Code is recommended.
 
 ### 2. Get the code and build the libraries (once)
@@ -48,7 +48,7 @@ make program-dfu
 ```
 
 In VS Code you can instead run the task **build_and_program_dfu**.
-No terminal? Flash `build/main.bin` with the [Daisy Web Programmer](https://electro-smith.github.io/Programmer/).
+No terminal? Flash `build/main.bin` with the [Daisy Web Programmer](https://flash.daisy.audio/).
 
 ### 4. See the sensor values (optional)
 
@@ -337,12 +337,12 @@ Turn printing on with `InitHardware(true)`. Printing is slow: never print inside
 
 ## Links
 
-- [Daisy documentation](https://daisy.audio/)
-- [libDaisy reference](https://daisy.audio/software/libdaisy/) · [DaisySP reference](https://daisy.audio/software/daisysp/)
-- [Daisy Seed pinout](https://daisy.audio/hardware/Seed/)
-- [Daisy forum](https://forum.electro-smith.com/)
+- [Daisy documentation](https://docs.daisy.audio/)
+- [libDaisy reference](https://docs.daisy.audio/libDaisy/classes/) · [DaisySP reference](https://docs.daisy.audio/DaisySP/classes/)
+- [Daisy Seed pinout](https://docs.daisy.audio/hardware/Seed/)
+- [Daisy community forum](https://community.daisy.audio/)
 
 ## Credits
 
 Sensor classes from [SMCWinterSchool_Daisy](https://github.com/leofogadic/SMCWinterSchool_Daisy).
-Built on [libDaisy](https://github.com/electro-smith/libDaisy) (MIT) and [DaisySP](https://github.com/electro-smith/DaisySP) (MIT; the optional DaisySP-LGPL modules are LGPL) by Electro-Smith.
+Built on [libDaisy](https://github.com/daisyaudio/libDaisy) (MIT) and [DaisySP](https://github.com/daisyaudio/DaisySP) (MIT; the optional DaisySP-LGPL modules are LGPL) by Daisy (formerly Electro-Smith).
