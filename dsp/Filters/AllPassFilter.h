@@ -10,7 +10,7 @@ namespace dsp
  *      AllPassFilter filter;
  *      filter.Init(sample_rate);
  *      filter.SetFreq(800.f);
- *      filter.SetBandwidth(0.5f);
+ *      filter.SetBandwidth(200.f);
  *      filter.SetMode(AllPassFilter::MODE_BANDPASS);
  *      float sample = filter.Process(input);
  */
@@ -28,13 +28,14 @@ class AllPassFilter
         filter_.Init(sample_rate);
         SetMode(MODE_BANDPASS);
         SetFreq(1000.f);
-        SetBandwidth(0.5f);
+        SetBandwidth(200.f);
     }
 
     /** Center frequency, in Hz. */
     void SetFreq(float freq_hz) { filter_.SetCenterFreq(freq_hz); }
 
-    /** Width of the band around the center frequency. */
+    /** Width of the band around the center frequency, in Hz. Narrower
+     *  = a sharper, more resonant bandpass (or a thinner notch). */
     void SetBandwidth(float bandwidth) { filter_.SetFilterBandwidth(bandwidth); }
 
     /** Which output of the filter to use. */

@@ -39,6 +39,7 @@ class Sequencer
         }
         UpdateMetroFreq();
         metro_.Init(metro_freq_, sample_rate_);
+        Reset();
     }
 
     /** Playback speed, in quarter notes per minute. */
@@ -73,6 +74,8 @@ class Sequencer
      *  Pass gate = false to make it a rest instead. */
     void SetStep(int index, float freq_hz, bool gate = true)
     {
+        if(index < 0 || index >= kMaxSteps)
+            return;
         freq_[index] = freq_hz;
         gate_[index] = gate;
     }
@@ -89,11 +92,7 @@ class Sequencer
     /** Jumps back to step 0 and resyncs the clock, so the next
      *  Process() call starts a fresh, clean step rather than landing
      *  mid-beat. */
-    void Reset()
-    {
-        current_step_ = 0;
-        metro_.Reset();
-    }
+    void Reset() { restart_ = true; }
 
     /** Advances the sequencer by one sample. Returns true exactly on
      *  the sample a new step begins - check CurrentFreq()/
@@ -102,6 +101,17 @@ class Sequencer
     {
         if(!running_)
             return false;
+
+        // The first call after Init()/Reset() plays step 0 straight
+        // away. Done here rather than in Reset(), so the audio
+        // callback can't run halfway through a Reset() from main().
+        if(restart_)
+        {
+            restart_      = false;
+            current_step_ = 0;
+            metro_.Reset();
+            return true;
+        }
 
         if(metro_.Process())
         {
@@ -131,6 +141,7 @@ class Sequencer
     int            num_steps_      = 8;
     int            current_step_   = 0;
     bool           running_        = true;
+    bool           restart_        = true;
     float          freq_[kMaxSteps];
     bool           gate_[kMaxSteps];
 };

@@ -1,8 +1,9 @@
 #pragma once
 
 /** Easy DSP library: include this one header to get every "other"
- *  utility that doesn't fit under synthesis or effects - envelopes and
- *  dynamics processing. Each one is a small class with the same shape:
+ *  utility that doesn't fit under synthesis or effects - envelopes,
+ *  an LFO, a sequencer, polyphony (VoiceManager) and a limiter. Each
+ *  one is a small class with the same shape:
  *
  *      Init(sample_rate)      - call once, at startup (some don't need
  *                                a sample rate)

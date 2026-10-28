@@ -31,8 +31,13 @@ class Adsr
         SetRelease(0.3f);
     }
 
-    /** Starts the envelope from its attack stage. */
-    void NoteOn() { gate_ = true; }
+    /** Starts the envelope from its attack stage. If it's already
+     *  running, the attack starts again from the current level. */
+    void NoteOn()
+    {
+        gate_      = true;
+        retrigger_ = true;
+    }
 
     /** Moves the envelope to its release stage. */
     void NoteOff() { gate_ = false; }
@@ -55,11 +60,25 @@ class Adsr
     bool IsRunning() { return env_.IsRunning(); }
 
     /** Returns the next envelope value, 0 - 1. */
-    float Process() { return env_.Process(gate_); }
+    float Process()
+    {
+        // NoteOn() while the envelope is already on: restart the attack
+        // from the current level (no jump). daisysp::Adsr can't spot
+        // that itself, as its gate never went from off to on. Skipped
+        // if NoteOff() came straight after.
+        if(retrigger_)
+        {
+            retrigger_ = false;
+            if(gate_)
+                env_.Retrigger(false);
+        }
+        return env_.Process(gate_);
+    }
 
   private:
     daisysp::Adsr env_;
-    bool          gate_ = false;
+    bool          gate_      = false;
+    bool          retrigger_ = false;
 };
 
 } // namespace dsp

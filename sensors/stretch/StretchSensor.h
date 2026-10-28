@@ -6,7 +6,7 @@
 using namespace daisy;
 
 // Reads an Adafruit conductive rubber cord stretch sensor in a voltage
-// divider on an ADC pin (e.g. seed::A7).
+// divider on an ADC pin (e.g. seed::A3).
 class StretchSensor
 {
   public:

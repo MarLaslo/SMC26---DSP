@@ -63,6 +63,9 @@ make
 make program-dfu
 ```
 
+`make program-dfu` usually ends with `Error during download get_status` and `Error 74`. That's normal: if `File downloaded successfully` appears just above it, the flash worked.
+If the board doesn't start the new program by itself, tap **RESET**.
+
 In VS Code you can instead run the task **build_and_program_dfu**.
 No terminal? Flash `build/main.bin` with the [Daisy Web Programmer](https://flash.daisy.audio/).
 
@@ -198,11 +201,12 @@ float sample = osc.Process();     // get the next sample, in AudioCallback
 ```
 
 Effects and filters take the sound in: `sample = delay.Process(sample);`.
+A few don't need the sample rate and are set up with a plain `Init()`: `Noise`, `Overdrive`, `WaveFolder`, `SampleRateReducer` and `Limiter`.
 Open a class's header file in `dsp/` to see all its settings. Every header starts with a short explanation and a usage example.
 
 ### Synthesis: [`dsp/Synthesis/`](dsp/Synthesis/)
 
-Start and stop notes with `NoteOn()` / `NoteOff()`.
+Start and stop notes with `NoteOn()` / `NoteOff()`. The noise sources have no notes: they play all the time.
 
 | Class | Sound |
 | --- | --- |
@@ -248,8 +252,8 @@ Sensors give a number from `0` to `1`. These turn it into something useful:
 | --- | --- |
 | `dsp::MapLinear(value, min, max)` | `0`–`1` → `min`–`max`, evenly |
 | `dsp::MapExponential(value, min, max)` | Same, but feels natural for pitch and time (like a piano keyboard) |
-| `dsp::MapLog(value, min, max)` | The opposite curve |
-| `dsp::MapSemitones(...)`, `dsp::SnapToScale(...)` | Snap a knob to musical notes or a scale |
+| `dsp::MapLog(value, min, max)` | The reverse of `MapExponential`: a value between `min` and `max` back to `0`–`1` |
+| `dsp::MapSemitones(value, base_freq, semitone_range, scale)` | Snap a knob to musical notes, optionally only the notes of a scale (`dsp::SCALE_MAJOR`, `dsp::SCALE_MINOR`) |
 | `dsp::MapPitchBend(value, base_freq, semitone_range)` | Bend a note up and down |
 | `dsp::NoteToFreq("A4")` | A note name → its frequency in Hz |
 | `dsp::ApplyGain(sample, db)`, `dsp::DbToLinear(db)`, `dsp::LinearToDb(x)` | Volume in decibels |
@@ -344,7 +348,7 @@ Turn printing on with `InitHardware(true)`. Printing is slow: never print inside
 | `make: arm-none-eabi-g++: No such file` | Toolchain not installed or not on your `PATH` (step 1) |
 | `cannot find -ldaisy` or `-ldaisysp` | Build the libraries first (step 2) |
 | `make program-dfu` can't find the device | Enter bootloader mode again: hold BOOT, tap RESET, release BOOT |
-| Flashed, but no sound | Did you call `NoteOn()`? Is `hw.StartAudio()` in `main()`? Is the volume up? |
+| Flashed, but no sound | Tap **RESET** once: the board may still be waiting in bootloader mode. Did you call `NoteOn()`? Is `hw.StartAudio()` in `main()`? Is the volume up? |
 | Nothing in the serial monitor | Is it `InitHardware(true)`? Is the serial monitor open on the right port? |
 | An analog sensor always reads 0 | Is its `Init()` inside `InitInputs()`? Sensors set up anywhere else are not read |
 | A button doesn't react | Is `Update()` called in the loop? Does it have a pull-up resistor (or `Init(pin, true)`)? |

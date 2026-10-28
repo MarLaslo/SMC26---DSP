@@ -101,7 +101,7 @@ inline float SnapToScale(float semitones, Scale scale)
  *  or SCALE_MINOR to restrict it to that scale rooted at base_freq.
  *
  *  For a "select a note" knob, e.g.
- *  MapSemitones(noteKnob.Value(), 220.f, 12.f, SCALE_MAJOR) picks any
+ *  MapSemitones(noteKnob.Read(), 220.f, 12.f, SCALE_MAJOR) picks any
  *  note of the A major scale across an octave up or down from A3.
  */
 inline float MapSemitones(float       value,
@@ -116,7 +116,7 @@ inline float MapSemitones(float       value,
 
 /** Like MapSemitones, but glides smoothly instead of stepping between
  *  notes - for a detune/pitch-bend/vibrato-depth knob centered at
- *  noon, e.g. MapPitchBend(bendKnob.Value(), 440.f, 2.f) for a smooth
+ *  noon, e.g. MapPitchBend(bendKnob.Read(), 440.f, 2.f) for a smooth
  *  whole-tone bend either way.
  */
 inline float MapPitchBend(float value, float base_freq, float semitone_range)

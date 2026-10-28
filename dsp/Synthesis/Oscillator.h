@@ -64,8 +64,14 @@ class Oscillator
         }
     }
 
-    /** Starts a note: triggers the amp envelope from the attack stage. */
-    void NoteOn() { gate_ = true; }
+    /** Starts a note: triggers the amp envelope from the attack stage.
+     *  On a note that's already playing, the attack starts again from
+     *  the current level, so every NoteOn() sounds like a new note. */
+    void NoteOn()
+    {
+        gate_      = true;
+        retrigger_ = true;
+    }
 
     /** Releases the note: the amp envelope moves to its release stage. */
     void NoteOff() { gate_ = false; }
@@ -76,12 +82,26 @@ class Oscillator
     void SetAmpRelease(float time_s) { amp_env_.SetReleaseTime(time_s); }
 
     /** Returns the next audio sample. */
-    float Process() { return osc_.Process() * amp_env_.Process(gate_); }
+    float Process()
+    {
+        // NoteOn() on a note that's already on: restart the attack from
+        // the current level (no click). The envelope can't spot that
+        // itself, as its gate never went from off to on. Skipped if
+        // NoteOff() came straight after.
+        if(retrigger_)
+        {
+            retrigger_ = false;
+            if(gate_)
+                amp_env_.Retrigger(false);
+        }
+        return osc_.Process() * amp_env_.Process(gate_);
+    }
 
   private:
     daisysp::Oscillator osc_;
     daisysp::Adsr       amp_env_;
-    bool                gate_ = false;
+    bool                gate_      = false;
+    bool                retrigger_ = false;
 };
 
 } // namespace dsp

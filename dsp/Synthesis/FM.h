@@ -51,8 +51,14 @@ class FM
      *  reached at the top of the modulation envelope. */
     void SetModDepth(float depth) { mod_depth_ = depth; }
 
-    /** Starts a note: triggers both envelopes from the attack stage. */
-    void NoteOn() { gate_ = true; }
+    /** Starts a note: triggers both envelopes from the attack stage.
+     *  On a note that's already playing, both start again from their
+     *  current level, so every NoteOn() sounds like a new note. */
+    void NoteOn()
+    {
+        gate_      = true;
+        retrigger_ = true;
+    }
 
     /** Releases the note: both envelopes move to their release stage. */
     void NoteOff() { gate_ = false; }
@@ -70,6 +76,20 @@ class FM
     /** Returns the next audio sample. */
     float Process()
     {
+        // NoteOn() on a note that's already on: restart both attacks
+        // from their current level (no click). The envelopes can't spot
+        // that themselves, as their gate never went from off to on.
+        // Skipped if NoteOff() came straight after.
+        if(retrigger_)
+        {
+            retrigger_ = false;
+            if(gate_)
+            {
+                amp_env_.Retrigger(false);
+                mod_env_.Retrigger(false);
+            }
+        }
+
         float amp_level = amp_env_.Process(gate_);
         float mod_level = mod_env_.Process(gate_);
 
@@ -83,6 +103,7 @@ class FM
     daisysp::Adsr mod_env_;
     float         mod_depth_ = 1.f;
     bool          gate_      = false;
+    bool          retrigger_ = false;
 };
 
 } // namespace dsp

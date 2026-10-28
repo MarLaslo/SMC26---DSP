@@ -1,6 +1,6 @@
 #pragma once
 
-// Include every sensor here, then Project.cpp only needs:
+// Include every sensor here, then hardware.h only needs:
 // #include "sensors/sensors.h"
 
 #include "analog/AnalogInputs.h"

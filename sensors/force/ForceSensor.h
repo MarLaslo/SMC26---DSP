@@ -6,7 +6,7 @@
 using namespace daisy;
 
 // Reads a force sensing resistor (FSR) in a voltage divider on an ADC pin
-// (e.g. seed::A8). 3V3 -> FSR -> pin -> 10k -> GND, so pressing harder
+// (e.g. seed::A4). 3V3 -> FSR -> pin -> 10k -> GND, so pressing harder
 // gives a higher value.
 class ForceSensor
 {

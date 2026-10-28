@@ -7,6 +7,11 @@ namespace dsp
 /** One-pole filter: the simplest, gentlest lowpass or highpass
  *  (6 dB/oct). Good for smoothing a signal or control value, or for
  *  a subtle tone-shaping effect.
+ *
+ *  To smooth a sensor in the while loop in main() rather than in
+ *  AudioCallback, Init() it with 1000.f (the loop runs about 1000
+ *  times a second) instead of the sample rate, so SetFreq() is still
+ *  in Hz.
  *  Usage:
  *      OnePoleFilter filter;
  *      filter.Init(sample_rate);

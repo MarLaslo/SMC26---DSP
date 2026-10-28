@@ -55,8 +55,14 @@ class Subtractive
     }
 
     /** Starts a note: triggers the amp and filter envelopes from the
-     *  attack stage. */
-    void NoteOn() { gate_ = true; }
+     *  attack stage. On a note that's already playing, both start
+     *  again from their current level, so every NoteOn() sounds like a
+     *  new note. */
+    void NoteOn()
+    {
+        gate_      = true;
+        retrigger_ = true;
+    }
 
     /** Releases the note: both envelopes move to their release stage. */
     void NoteOff() { gate_ = false; }
@@ -107,6 +113,20 @@ class Subtractive
     /** Returns the next audio sample. */
     float Process()
     {
+        // NoteOn() on a note that's already on: restart both attacks
+        // from their current level (no click). The envelopes can't spot
+        // that themselves, as their gate never went from off to on.
+        // Skipped if NoteOff() came straight after.
+        if(retrigger_)
+        {
+            retrigger_ = false;
+            if(gate_)
+            {
+                amp_env_.Retrigger(false);
+                filter_env_.Retrigger(false);
+            }
+        }
+
         float filter_env_level = filter_env_.Process(gate_);
         filter_.SetFreq(cutoff_ + filter_env_amount_ * filter_env_level);
 
@@ -122,6 +142,7 @@ class Subtractive
     float                 cutoff_            = 1000.f;
     float                 filter_env_amount_ = 0.f;
     bool                  gate_              = false;
+    bool                  retrigger_         = false;
 };
 
 } // namespace dsp

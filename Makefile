@@ -8,7 +8,8 @@ CPP_SOURCES = main.cpp
 LIBDAISY_DIR = libs/libDaisy
 DAISYSP_DIR  = libs/DaisySP
 
-# Pulls in the LGPL-licensed DaisySP modules (needed for Fold, used by the wavefolder effect)
+# Makes the LGPL-licensed DaisySP modules (ReverbSc, MoogLadder, ...) available.
+# Nothing in dsp/ uses them, so they only end up in your program if you use one.
 USE_DAISYSP_LGPL = 1
 
 # Core location, and generic Makefile.

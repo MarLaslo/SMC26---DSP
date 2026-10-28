@@ -32,7 +32,7 @@ class Chorus
     void SetLfoDepth(float depth) { chorus_.SetLfoDepth(depth); }
 
     /** Base delay time the modulation moves around. Range: 0 - 1
-     *  (maps to .1 - 50 ms). */
+     *  (maps to .1 - 8 ms). */
     void SetDelay(float delay) { chorus_.SetDelay(delay); }
 
     /** Base delay time in milliseconds, .1 - 50 ms. */

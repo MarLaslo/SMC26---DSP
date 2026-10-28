@@ -3,12 +3,14 @@
 /** Easy DSP library: include this one header to get every synthesis
  *  technique. Each technique is a small class with the same shape:
  *
- *      Init(sample_rate)   - call once, at startup
- *      SetFreq(freq_hz)    - set the pitch
- *      Process()           - call once per audio sample, returns it
+ *      Init(sample_rate)    - call once, at startup
+ *      SetFreq(freq_hz)     - set the pitch
+ *      NoteOn() / NoteOff() - start and stop a note
+ *      Process()            - call once per audio sample, returns it
  *
- *  Techniques are currently placeholders (they output silence) and
- *  will be filled in as the course progresses.
+ *  The noise sources in Noise.h are the exception: they have no notes
+ *  and just play all the time (and plain Noise needs no sample rate,
+ *  just Init()).
  */
 
 #include "Oscillator.h"

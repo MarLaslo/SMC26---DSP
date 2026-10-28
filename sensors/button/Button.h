@@ -4,7 +4,7 @@
 
 using namespace daisy;
 
-// Reads a button with an external pull-up resistor (e.g. on seed::A3).
+// Reads a button with an external pull-up resistor (e.g. on seed::D9).
 // Button connects the pin to GND when pressed.
 //
 // Call Update() once every loop, then use any of the functions below.

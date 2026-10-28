@@ -123,7 +123,7 @@ class SynthSnareDrum
     void SetDecay(float decay) { drum_.SetDecay(decay); }
 
     /** Mix between the drum tone and the noise "snap",
-     *  0 = just the drum, 1 = just the snare. */
+     *  0 = just the drum tone, 1 = just the snap. */
     void SetSnappy(float snappy) { drum_.SetSnappy(snappy); }
 
     /** How hard the next hit lands, 0-1. */

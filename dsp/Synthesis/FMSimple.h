@@ -49,8 +49,14 @@ class FMSimple
      *  attack, mellower sustain). */
     void SetBrightness(float amount) { brightness_ = amount; }
 
-    /** Starts a note: triggers the envelope from the attack stage. */
-    void NoteOn() { gate_ = true; }
+    /** Starts a note: triggers the envelope from the attack stage.
+     *  On a note that's already playing, the attack starts again from
+     *  the current level, so every NoteOn() sounds like a new note. */
+    void NoteOn()
+    {
+        gate_      = true;
+        retrigger_ = true;
+    }
 
     /** Releases the note: the envelope moves to its release stage. */
     void NoteOff() { gate_ = false; }
@@ -63,6 +69,17 @@ class FMSimple
     /** Returns the next audio sample. */
     float Process()
     {
+        // NoteOn() on a note that's already on: restart the attack from
+        // the current level (no click). The envelope can't spot that
+        // itself, as its gate never went from off to on. Skipped if
+        // NoteOff() came straight after.
+        if(retrigger_)
+        {
+            retrigger_ = false;
+            if(gate_)
+                env_.Retrigger(false);
+        }
+
         float env_level = env_.Process(gate_);
         float index      = mod_depth_ * (1.f - brightness_ + brightness_ * env_level);
 
@@ -76,6 +93,7 @@ class FMSimple
     float         mod_depth_  = 1.f;
     float         brightness_ = 0.5f;
     bool          gate_       = false;
+    bool          retrigger_  = false;
 };
 
 } // namespace dsp
