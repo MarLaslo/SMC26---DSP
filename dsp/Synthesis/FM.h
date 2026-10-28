@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Synthesis/fm2.h"
+#include "FMOperator.h"
 #include "Control/adsr.h"
 
 namespace dsp
 {
 /** FM synthesis: carrier oscillator frequency-modulated by a modulator
- *  oscillator. Built on top of DaisySP's Fm2, with two envelopes:
+ *  oscillator (see FMOperator.h), with two envelopes:
  *  one shapes the volume, the other shapes the modulation depth, so
  *  the timbre can open up on the attack and mellow out over the note
  *  (classic FM/DX7-style behavior).
@@ -98,7 +98,7 @@ class FM
     }
 
   private:
-    daisysp::Fm2  fm_;
+    FMOperator    fm_;
     daisysp::Adsr amp_env_;
     daisysp::Adsr mod_env_;
     float         mod_depth_ = 1.f;

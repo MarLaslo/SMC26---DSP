@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Synthesis/fm2.h"
+#include "FMOperator.h"
 #include "Control/adsr.h"
 
 namespace dsp
@@ -88,7 +88,7 @@ class FMSimple
     }
 
   private:
-    daisysp::Fm2  fm_;
+    FMOperator    fm_;
     daisysp::Adsr env_;
     float         mod_depth_  = 1.f;
     float         brightness_ = 0.5f;
